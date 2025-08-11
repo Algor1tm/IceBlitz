@@ -1,3 +1,2 @@
 # IceBlitz
-
-Developed with Unreal Engine 5
+Hockey Competitive Game
