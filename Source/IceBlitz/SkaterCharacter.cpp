@@ -32,6 +32,12 @@ ASkaterCharacter::ASkaterCharacter()
 
 	MeshPickUpTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MeshPickUpTrigger"));
 	MeshPickUpTrigger->SetupAttachment(GetMesh());
+
+	StickStealTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("StickStealTrigger"));
+	StickStealTrigger->SetupAttachment(StickMesh);
+
+	MeshStealTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MeshStealTrigger"));
+	MeshStealTrigger->SetupAttachment(GetMesh());
 }
 
 void ASkaterCharacter::BeginPlay()
@@ -46,6 +52,12 @@ void ASkaterCharacter::BeginPlay()
 
 	StickPickUpTrigger->OnComponentBeginOverlap.AddDynamic(this, &ASkaterCharacter::OnPuckPickUp);
 	MeshPickUpTrigger->OnComponentBeginOverlap.AddDynamic(this, &ASkaterCharacter::OnPuckPickUp);
+
+	StickStealTrigger->OnComponentBeginOverlap.AddDynamic(this, &ASkaterCharacter::OnStealRangeBegin);
+	StickStealTrigger->OnComponentEndOverlap.AddDynamic(this, &ASkaterCharacter::OnStealRangeEnd);
+
+	MeshStealTrigger->OnComponentBeginOverlap.AddDynamic(this, &ASkaterCharacter::OnStealRangeBegin);
+	MeshStealTrigger->OnComponentEndOverlap.AddDynamic(this, &ASkaterCharacter::OnStealRangeEnd);
 }
 
 void ASkaterCharacter::Tick(float DeltaTime)
@@ -61,7 +73,7 @@ void ASkaterCharacter::Tick(float DeltaTime)
 	if (bIsCharging)
 	{
 		if(bFastFill)
-			ShootCharge += 1.75f * DeltaTime * ShootChargeSpeed;
+			ShootCharge += FastFillFactor * DeltaTime * ShootChargeSpeed;
 		else
 			ShootCharge += DeltaTime * ShootChargeSpeed;
 
@@ -78,8 +90,8 @@ void ASkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnMove);
 		EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnSlide);
 		EnhancedInputComponent->BindAction(StopAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnStop);
-		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnShootBegin);
-		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &ASkaterCharacter::OnShootEnd);
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnShootBeginInput);
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &ASkaterCharacter::OnShootEndInput);
 		EnhancedInputComponent->BindAction(CameraResetAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnCameraReset);
 	}
 	else
@@ -97,7 +109,7 @@ void ASkaterCharacter::OnMove(const FInputActionValue& Value)
 	if (bIsCharging)
 	{
 		bFastFill = false;
-		ShootCharge -= 0.15f;
+		ShootCharge -= MoveShootChargeDecrease;
 	}
 
 	UNiagaraFunctionLibrary::SpawnSystemAtLocation(this, FXCursor, FVector(MoveDestination, 0), FRotator::ZeroRotator, FVector(1.f, 1.f, 1.f), true, true, ENCPoolMethod::None, true);
@@ -124,49 +136,91 @@ void ASkaterCharacter::OnCameraReset()
 	}
 }
 
-void ASkaterCharacter::OnShootBegin()
+void ASkaterCharacter::OnShootBeginInput()
 {
-	if (!OwnedPuck)
-		return;
+	if (OwnedPuck)
+	{
+		ShootBegin();
+	}
+	else
+	{
+		TrySteal();
+	}
+}
 
+void ASkaterCharacter::OnShootEndInput()
+{
+	if (bIsCharging && OwnedPuck)
+		ShootEnd();
+}
+
+void ASkaterCharacter::ShootBegin()
+{
 	ShootCharge = 0.0f;
 	bIsCharging = true;
 	bFastFill = true;
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("SHOOT BEGIN"));
 }
 
-void ASkaterCharacter::OnShootEnd()
+void ASkaterCharacter::ShootEnd()
 {
-	if (!OwnedPuck)
-		return;
-
-	bIsCharging = false;
-
 	FVector2D Cursor = GetLocationUnderCursor();
 	FVector Direction = ComputeDirectionFromPuckTo(Cursor);
 	float DistanceToCursor = Direction.Length();
 	Direction = Direction.GetSafeNormal();
 
-	float SpeedFactor = (FVector::DotProduct(GetCharacterMovement()->Velocity.GetSafeNormal(), Direction) + 1) * 0.5f;
-	float Speed = GetCharacterMovement()->Velocity.Length() * SpeedFactor;
-
-	float NormalizedCharge = FMath::Clamp(ShootCharge, 0.01f, 1.f);
-	float NormalizedDistanceToCursor = FMath::Clamp(DistanceToCursor / ShootMaxDistanceToCursor, 0.f, 1.f);
-	float NormalizedSpeed = FMath::Clamp(Speed / ShootMaxSkaterSpeed, 0.f, 1.f);
-
-	float TotalModifiers = 3 * NormalizedCharge + 1.5f * NormalizedDistanceToCursor + 1.2f * NormalizedSpeed;
-	float Power = ShootBasePower * TotalModifiers;
+	float Power = ComputeShotPower(Direction, DistanceToCursor, GetCharacterMovement()->Velocity);
 
 	DisablePuckPickUpForTime();
 
 	OwnedPuck->ReleaseOwner();
 	OwnedPuck->Shoot(Direction, Power);
 	OwnedPuck = nullptr;
+	bIsCharging = false;
 
 	OnStop();
 	FaceDirection(Direction);
+}
 
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("SHOOT END, POWER = %f, DistanceToCursor = %f, SpeedFactor = %f, Direction = %s"), Power, DistanceToCursor, SpeedFactor, *(Direction.ToString())));
+void ASkaterCharacter::TrySteal()
+{
+	if (StealableCharacters.IsEmpty())
+		return;
+
+	ASkaterCharacter* Target = nullptr;
+	for (const auto& [Skater, Count] : StealableCharacters)
+	{
+		if (Skater->GetPuck())
+		{
+			Target = Skater;
+			break;
+		}
+	}
+
+	if (!Target)
+		return;
+
+	APuck* Puck = Target->GetPuck();
+	Target->OnPuckStealed();
+
+	OwnedPuck = Puck;
+	OwnedPuck->SetSkaterOwner(this);
+}
+
+float ASkaterCharacter::ComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const
+{
+	float SpeedFactor = (FVector::DotProduct(SkaterVelocity.GetSafeNormal(), Direction) + 1) * 0.5f;
+	float Speed = SkaterVelocity.Length() * SpeedFactor;
+
+	float NormalizedCharge = FMath::Clamp(ShootCharge, 0.01f, 1.f);
+	float NormalizedDistanceToCursor = FMath::Clamp(DistanceToCursor / ShootMaxDistanceToCursor, 0.f, 1.f);
+	float NormalizedSpeed = FMath::Clamp(Speed / ShootMaxSkaterSpeed, 0.f, 1.f);
+
+	float TotalModifiers = ShootChargeFactor * NormalizedCharge + ShootDistanceToCursorFactor * NormalizedDistanceToCursor + ShootSpeedFactor * NormalizedSpeed;
+	float Power = ShootBasePower * TotalModifiers;
+
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, FString::Printf(TEXT("SHOOT, POWER = %f, DistanceToCursor = %f, SpeedFactor = %f, Direction = %s"), Power, DistanceToCursor, SpeedFactor, *(Direction.ToString())));
+
+	return Power;
 }
 
 void ASkaterCharacter::EnableOrientRotationToMovement(bool Enable)
@@ -181,7 +235,7 @@ void ASkaterCharacter::EnableOrientRotationToMovement(bool Enable)
 		Controller->SetControlRotation(GetActorRotation());
 }
 
-void ASkaterCharacter::FaceDirection(FVector Direction)
+void ASkaterCharacter::FaceDirection(const FVector& Direction)
 {
 	if (Controller && !Direction.IsNearlyZero())
 	{
@@ -221,7 +275,7 @@ void ASkaterCharacter::DisablePuckPickUpForTime()
 		PickUpTimerHandle,
 		this,
 		&ASkaterCharacter::EnablePuckPickUp,
-		0.275f,
+		PuckPickUpCooldown,
 		false
 	);
 }
@@ -232,6 +286,57 @@ void ASkaterCharacter::EnablePuckPickUp()
 	MeshPickUpTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	GetWorld()->GetTimerManager().ClearTimer(PickUpTimerHandle);
+}
+
+void ASkaterCharacter::OnStealRangeBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	ASkaterCharacter* SkaterActor = Cast<ASkaterCharacter>(OtherActor);
+
+	if (!IsValid(SkaterActor))
+		return;
+
+	uint8& OverlapCount = StealableCharacters.FindOrAdd(SkaterActor, 0);
+	OverlapCount++;
+
+	if (OverlapCount > 4)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Invalid stealable characters map!"));
+		return;
+	}
+}
+
+void ASkaterCharacter::OnStealRangeEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	ASkaterCharacter* SkaterActor = Cast<ASkaterCharacter>(OtherActor);
+
+	if (!IsValid(SkaterActor))
+		return;
+
+	uint8* OverlapCountPtr = StealableCharacters.Find(SkaterActor);
+
+	if (OverlapCountPtr == nullptr || *OverlapCountPtr == 0 || *OverlapCountPtr > 4)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Invalid stealable characters map!"));
+		return;
+	}
+
+	*OverlapCountPtr -= 1;
+
+	if (*OverlapCountPtr == 0)
+	{
+		StealableCharacters.Remove(SkaterActor);
+	}
+}
+
+APuck* ASkaterCharacter::GetPuck() const
+{
+	return OwnedPuck;
+}
+
+void ASkaterCharacter::OnPuckStealed()
+{
+	OwnedPuck = nullptr;
+	bIsCharging = false;
 }
 
 FVector2D ASkaterCharacter::GetLocationUnderCursor() const
@@ -248,20 +353,12 @@ FVector2D ASkaterCharacter::GetLocationUnderCursor() const
 	}
 	else
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("ALERT!!"));
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Failed to find location under cursor!"));
 		FVector ActorLocation = GetActorLocation();
 		Result = FVector2D(ActorLocation.X, ActorLocation.Y);
 	}
 	
 	return Result;
-}
-
-FVector ASkaterCharacter::GetDirectionByCursor() const
-{
-	FVector2D LocationUnderCursor = GetLocationUnderCursor();
-	FVector Direction = ComputeDirectionTo(LocationUnderCursor);
-
-	return Direction;
 }
 
 FVector ASkaterCharacter::ComputeDirectionTo(FVector2D Location) const

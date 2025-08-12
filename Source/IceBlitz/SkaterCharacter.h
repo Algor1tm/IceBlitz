@@ -36,6 +36,12 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Triggers")
 	TObjectPtr<USphereComponent> MeshPickUpTrigger;
 
+	UPROPERTY(EditAnywhere, Category = "Triggers")
+	TObjectPtr<USphereComponent> StickStealTrigger;
+
+	UPROPERTY(EditAnywhere, Category = "Triggers")
+	TObjectPtr<USphereComponent> MeshStealTrigger;
+
 	// VFX
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
@@ -69,11 +75,17 @@ protected:
 
 	void OnStop();
 
-	void OnShootBegin();
+	void OnShootBeginInput();
 
-	void OnShootEnd();
+	void OnShootEndInput();
 
 	void OnCameraReset();
+
+	void ShootBegin();
+
+	void ShootEnd();
+
+	void TrySteal();
 
 	// Movement
 protected:
@@ -98,24 +110,42 @@ protected:
 
 	void EnableOrientRotationToMovement(bool Enable);
 
-	void FaceDirection(FVector Direction);
+	void FaceDirection(const FVector& Direction);
 
 	// Abilities
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float SlideIntensity = 0.65f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot", meta = (ClampMin = "0.0", ClampMax = "1.0"))
 	float ShootChargeSpeed = 0.3f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
 	float ShootBasePower = 600.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
+	float ShootChargeFactor = 3;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
 	float ShootMaxDistanceToCursor = 1000.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
+	float ShootDistanceToCursorFactor = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
 	float ShootMaxSkaterSpeed = 1000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
+	float ShootSpeedFactor = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
+	float FastFillFactor = 1.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float MoveShootChargeDecrease = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Abilities|Shoot")
+	float PuckPickUpCooldown = 0.275f;
 
 	// Private impl
 protected:
@@ -138,11 +168,16 @@ protected:
 
 	FTimerHandle PickUpTimerHandle;
 
+	// 1 - character actor, 2 - number of intersections
+	TMap<ASkaterCharacter*, uint8> StealableCharacters;
+
 public:
 	ASkaterCharacter();
 
 protected:
 	virtual void BeginPlay() override;
+
+	float ComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const;
 
 	UFUNCTION()
 	void OnPuckPickUp(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -151,11 +186,20 @@ protected:
 
 	void EnablePuckPickUp();
 
-	UFUNCTION(BlueprintCallable)
-	FVector2D GetLocationUnderCursor() const;
+	UFUNCTION()
+	void OnStealRangeBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnStealRangeEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 	UFUNCTION(BlueprintCallable)
-	FVector GetDirectionByCursor() const;
+	APuck* GetPuck() const;
+
+	UFUNCTION(BlueprintCallable)
+	void OnPuckStealed();
+
+	UFUNCTION(BlueprintCallable)
+	FVector2D GetLocationUnderCursor() const;
 
 	UFUNCTION(BlueprintCallable)
 	FVector ComputeDirectionTo(FVector2D Location) const;
