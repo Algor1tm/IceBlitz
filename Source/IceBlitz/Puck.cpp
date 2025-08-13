@@ -2,7 +2,7 @@
 
 
 #include "Puck.h"
-#include "SkaterCharacter.h"
+#include "BaseSkaterCharacter.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -37,13 +37,15 @@ void APuck::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void APuck::SetSkaterOwner(ASkaterCharacter* Skater)
+void APuck::SetSkaterOwner(ABaseSkaterCharacter* Skater)
 {
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, true);
 	RootComponent->AttachToComponent(Skater->GetStickMeshComponent(), AttachmentRules, FName("PuckSocket"));
 
 	CylinderCollider->SetSimulatePhysics(false);
 	CylinderCollider->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	bHasOwner = true;
 }
 
 void APuck::ReleaseOwner()
@@ -54,6 +56,13 @@ void APuck::ReleaseOwner()
 	CylinderCollider->SetPhysicsLinearVelocity(FVector::ZeroVector);
 	CylinderCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	CylinderCollider->SetSimulatePhysics(true);
+
+	bHasOwner = false;
+}
+
+bool APuck::HasOwner() const
+{
+	return bHasOwner;
 }
 
 void APuck::Shoot(FVector Direction, float Power)

@@ -6,7 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Puck.generated.h"
 
-class ASkaterCharacter;
+class ABaseSkaterCharacter;
 class USphereComponent;
 class UStaticMeshComponent;
 class UProjectileMovementComponent;
@@ -26,14 +26,19 @@ public:
 	TObjectPtr<UStaticMeshComponent> PuckMesh;
 
 protected:
+	bool bHasOwner = false;
+
+protected:
 	virtual void BeginPlay() override;
 
 public:	
 	virtual void Tick(float DeltaTime) override;
 
-	void SetSkaterOwner(ASkaterCharacter* Skater);
+	void SetSkaterOwner(ABaseSkaterCharacter* Skater);
 
 	void ReleaseOwner();
+
+	bool HasOwner() const;
 
 	void Shoot(FVector Direction, float Power);
 };

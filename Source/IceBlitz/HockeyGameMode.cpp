@@ -30,7 +30,7 @@ void AHockeyGameMode::BeginPlay()
 
 	PlayerController->SetViewTarget(CameraActor);
 
-	TObjectPtr<ASkaterCharacter> PossessedSkater = Cast<ASkaterCharacter>(PlayerController->GetPawn());
+	TObjectPtr<ABaseSkaterCharacter> PossessedSkater = Cast<ABaseSkaterCharacter>(PlayerController->GetPawn());
 	if (PossessedSkater)
 	{
 		PossessedSkater->SetPlayerCamera(CameraActor);
