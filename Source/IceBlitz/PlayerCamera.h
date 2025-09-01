@@ -22,19 +22,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
-	UPROPERTY(EditAnywhere)
-	float ScrollSpeed = 2000.f;
 
 public:	
 	APlayerCamera();
 
-protected:
 	virtual void BeginPlay() override;
-	void HandleEdgeScrolling(float DeltaTime);
-
-public:
-	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION(BlueprintCallable)
-	void CenterOnPossesedPawn();
 };

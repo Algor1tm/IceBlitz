@@ -6,18 +6,11 @@
 #include "GameFramework/GameModeBase.h"
 #include "HockeyGameMode.generated.h"
 
-class APlayerCamera;
 
-/**
- * 
- */
 UCLASS()
 class ICEBLITZ_API AHockeyGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
-
-	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<APlayerCamera> PlayerCameraClass;
 
 public:
 	AHockeyGameMode();

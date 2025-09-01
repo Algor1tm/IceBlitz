@@ -82,7 +82,7 @@ void ABaseSkaterCharacter::Tick(float DeltaTime)
 			if (PlanarLocation.Equals(MoveDestination, STOP_TOLERANCE))
 			{
 				bIsMoving = false;
-				GetCharacterMovement()->Velocity = FVector(0.f);
+				GetCharacterMovement()->StopMovementImmediately();
 			}
 		}
 		else
@@ -118,7 +118,6 @@ void ABaseSkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(StopAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnStopInput);
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnShootBeginInput);
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &ABaseSkaterCharacter::OnShootEndInput);
-		EnhancedInputComponent->BindAction(CameraResetAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnCameraResetInput);
 	}
 	else
 	{
@@ -155,11 +154,6 @@ void ABaseSkaterCharacter::OnShootEndInput()
 		ShootEnd();
 }
 
-void ABaseSkaterCharacter::OnCameraResetInput()
-{
-	CenterCamera();
-}
-
 void ABaseSkaterCharacter::SetMoveDestination(FVector2D Destination)
 {
 	bIsMoving = true;
@@ -194,12 +188,6 @@ void ABaseSkaterCharacter::Stop()
 
 	if(bOrientRotationToMovement)
 		EnableOrientRotationToMovement(false);
-}
-
-void ABaseSkaterCharacter::CenterCamera()
-{
-	if (PlayerCamera)
-		PlayerCamera->CenterOnPossesedPawn();
 }
 
 void ABaseSkaterCharacter::ShootBegin()
@@ -317,7 +305,8 @@ void ABaseSkaterCharacter::OnBoostBegin()
 	GetCharacterMovement()->MaxWalkSpeed = BoostMaxSkateSpeed;
 	float BoostSpeed = BoostMaxSkateSpeed - MaxSkateSpeed;
 
-	GetCharacterMovement()->Velocity += GetActorForwardVector() * BoostSpeed;
+	FVector Impulse = GetActorForwardVector() * BoostSpeed;
+	GetCharacterMovement()->AddImpulse(Impulse, true);
 
 	UGameplayStatics::PlaySound2D(this, BoostSound);
 }
@@ -402,7 +391,7 @@ void ABaseSkaterCharacter::OnPuckStealed()
 
 FVector2D ABaseSkaterCharacter::GetLocationUnderCursor() const
 {
-	TObjectPtr<APlayerController> PlayerController = UGameplayStatics::GetPlayerController(this, 0);
+	TObjectPtr<APlayerController> PlayerController = GetController<APlayerController>();
 
 	FHitResult Hit;
 	bool bHitSuccessful = PlayerController->GetHitResultUnderCursor(ECollisionChannel::ECC_CursorTrace, true, Hit);
@@ -460,9 +449,4 @@ APuck* ABaseSkaterCharacter::GetPuck() const
 UStaticMeshComponent* ABaseSkaterCharacter::GetStickMeshComponent() const
 {
 	return StickMesh;
-}
-
-void ABaseSkaterCharacter::SetPlayerCamera(APlayerCamera* Camera)
-{
-	PlayerCamera = Camera;
 }

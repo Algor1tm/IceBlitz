@@ -14,7 +14,7 @@ class UNiagaraSystem;
 class USoundBase;
 class USphereComponent;
 
-UCLASS()
+UCLASS(Abstract)
 class ICEBLITZ_API ABaseSkaterCharacter : public ACharacter
 {
 	GENERATED_BODY()
@@ -69,9 +69,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TObjectPtr<UInputAction> ShootAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	TObjectPtr<UInputAction> CameraResetAction;
-
 	void OnMoveInput();
 
 	void OnStopInput();
@@ -80,13 +77,9 @@ protected:
 
 	void OnShootEndInput();
 
-	void OnCameraResetInput();
-
 	void SetMoveDestination(FVector2D Destination);
 
 	void Stop();
-
-	void CenterCamera();
 
 	void ShootBegin();
 
@@ -220,13 +213,13 @@ protected:
 
 	void OnPuckStealed();
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure)
 	FVector2D GetLocationUnderCursor() const;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure)
 	FVector ComputeDirectionTo(FVector2D Location) const;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure)
 	FVector ComputeDirectionFromPuckTo(FVector2D Location) const;
 
 public:	
@@ -234,13 +227,12 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure)
 	bool HasPuck() const;
 
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintPure)
 	APuck* GetPuck() const;
 
+	UFUNCTION(BlueprintPure)
 	UStaticMeshComponent* GetStickMeshComponent() const;
-
-	void SetPlayerCamera(APlayerCamera* Camera);
 };
