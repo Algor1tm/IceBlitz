@@ -39,25 +39,25 @@ void APuck::Tick(float DeltaTime)
 
 void APuck::SetSkaterOwner(ABaseSkaterCharacter* Skater)
 {
-	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, true);
-	RootComponent->AttachToComponent(Skater->GetStickMeshComponent(), AttachmentRules, FName("PuckSocket"));
-
-	CylinderCollider->SetSimulatePhysics(false);
-	CylinderCollider->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	bHasOwner = true;
+	//FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, true);
+	//RootComponent->AttachToComponent(Skater->GetStickMeshComponent(), AttachmentRules, FName("PuckSocket"));
+	//
+	//CylinderCollider->SetSimulatePhysics(false);
+	//CylinderCollider->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	//
+	//bHasOwner = true;
 }
 
 void APuck::ReleaseOwner()
 {
-	FDetachmentTransformRules DetachmentRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false);
-	RootComponent->DetachFromComponent(DetachmentRules);
-
-	CylinderCollider->SetPhysicsLinearVelocity(FVector::ZeroVector);
-	CylinderCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	CylinderCollider->SetSimulatePhysics(true);
-
-	bHasOwner = false;
+	//FDetachmentTransformRules DetachmentRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false);
+	//RootComponent->DetachFromComponent(DetachmentRules);
+	//
+	//CylinderCollider->SetPhysicsLinearVelocity(FVector::ZeroVector);
+	//CylinderCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	//CylinderCollider->SetSimulatePhysics(true);
+	//
+	//bHasOwner = false;
 }
 
 bool APuck::HasOwner() const

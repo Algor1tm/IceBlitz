@@ -16,7 +16,8 @@ public class IceBlitz : ModuleRules
 			"EnhancedInput", 
 			"GameplayAbilities",
 			"GameplayTags",
-			"Niagara" });
+            "GameplayTasks",
+            "Niagara" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

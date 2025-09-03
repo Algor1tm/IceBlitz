@@ -22,7 +22,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
-
 public:	
 	APlayerCamera();
 

@@ -36,46 +36,10 @@ void ASkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnSlideInput);
-		EnhancedInputComponent->BindAction(BoostAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnBoostInput);
+		
 	}
 	else
 	{
 		UE_LOG(LogTemp, Error, TEXT("'%s' Failed to find an Enhanced Input Component!"), *GetNameSafe(this));
 	}
-}
-
-void ASkaterCharacter::OnSlideInput()
-{
-	OnSlideBegin();
-}
-
-void ASkaterCharacter::OnBoostInput()
-{
-	OnBoostBegin();
-}
-
-void ASkaterCharacter::OnSlideBegin()
-{
-	GetCharacterMovement()->Velocity *= (1.f - SlideDecreaseIntensity);
-	GetCharacterMovement()->MaxAcceleration *= SlideAccelerationMultiplier;
-
-	NormalSkateSpeed = SkateSpeed;
-	SkateSpeed *= SlideSpeedMultiplier;
-
-	GetWorld()->GetTimerManager().SetTimer(
-		SlideTimerHandle,
-		this,
-		&ASkaterCharacter::OnSlideEnd,
-		SlideDuration,
-		false
-	);
-
-	UGameplayStatics::PlaySound2D(this, SlideSound);
-}
-
-void ASkaterCharacter::OnSlideEnd()
-{
-	GetCharacterMovement()->MaxAcceleration = MaxAcceleration;
-	SkateSpeed = NormalSkateSpeed;
 }
