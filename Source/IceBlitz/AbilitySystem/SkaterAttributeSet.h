@@ -18,8 +18,20 @@ class ICEBLITZ_API USkaterAttributeSet : public UAttributeSet
 {
 	GENERATED_BODY()
 
-protected:
+public:
     UPROPERTY(BlueprintReadOnly, Category = "Attributes")
-    FGameplayAttributeData ShotPower;
-    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, ShotPower);
+    FGameplayAttributeData MaxAcceleration;
+    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, MaxAcceleration);
+
+    UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+    FGameplayAttributeData SkateSpeed;
+    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, SkateSpeed);
+
+    UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+    FGameplayAttributeData MaxSkateSpeed;
+    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, MaxSkateSpeed);
+
+    UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+    FGameplayAttributeData ShotCharge;
+    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, ShotCharge);
 };

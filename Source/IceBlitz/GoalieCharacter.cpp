@@ -2,6 +2,8 @@
 
 
 #include "GoalieCharacter.h"
+#include "AbilitySystem/SkaterAbility.h"
+#include "AbilitySystem/SkaterAttributeSet.h"
 
 
 AGoalieCharacter::AGoalieCharacter()
@@ -12,6 +14,12 @@ AGoalieCharacter::AGoalieCharacter()
 void AGoalieCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 2, (uint32)ESkaterAbilityInputID::Boost, this);
+		AbilitySystemComponent->GiveAbility(BoostAbilitySpec);
+	}
 }
 
 void AGoalieCharacter::Tick(float DeltaTime)

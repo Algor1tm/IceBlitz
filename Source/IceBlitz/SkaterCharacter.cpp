@@ -2,15 +2,10 @@
 
 
 #include "SkaterCharacter.h"
-#include "Puck.h"
-#include "PlayerCamera.h"
-#include "NiagaraSystem.h"
-#include "NiagaraFunctionLibrary.h"
+#include "AbilitySystem/SkaterAbility.h"
+#include "AbilitySystem/SkaterAttributeSet.h"
+
 #include "EnhancedInputComponent.h"
-#include "Components/SphereComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-#include "Kismet/GameplayStatics.h"
-#include "Sound/SoundBase.h"
 
 #define ECC_CursorTrace ECC_GameTraceChannel2
 
@@ -23,6 +18,15 @@ ASkaterCharacter::ASkaterCharacter()
 void ASkaterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 1, (uint32)ESkaterAbilityInputID::Boost, this);
+		AbilitySystemComponent->GiveAbility(BoostAbilitySpec);
+
+		FGameplayAbilitySpec SlideAbilitySpec(SlideAbility, 1, (uint32)ESkaterAbilityInputID::Slide, this);
+		AbilitySystemComponent->GiveAbility(SlideAbilitySpec);
+	}
 }
 
 void ASkaterCharacter::Tick(float DeltaTime)
@@ -36,10 +40,11 @@ void ASkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
-		
+		EnhancedInputComponent->BindAction(SlideInputAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnSlideInput);
 	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("'%s' Failed to find an Enhanced Input Component!"), *GetNameSafe(this));
-	}
+}
+
+void ASkaterCharacter::OnSlideInput()
+{
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Slide);
 }

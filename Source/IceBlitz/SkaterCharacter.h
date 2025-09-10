@@ -6,13 +6,22 @@
 #include "BaseSkaterCharacter.h"
 #include "SkaterCharacter.generated.h"
 
+class USkaterAbility;
+
 UCLASS()
 class ICEBLITZ_API ASkaterCharacter : public ABaseSkaterCharacter
 {
 	GENERATED_BODY()
 
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* SlideInputAction;
 
+	void OnSlideInput();
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> SlideAbility;
 
 public:
 	ASkaterCharacter();

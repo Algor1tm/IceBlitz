@@ -4,14 +4,15 @@
 #include "BaseSkaterCharacter.h"
 #include "Puck.h"
 #include "PlayerCamera.h"
+#include "AbilitySystem/SkaterAbility.h"
 #include "AbilitySystem/SkaterAttributeSet.h"
-#include "AbilitySystem/StopAbility.h"
 
 #include "InputAction.h"
 #include "EnhancedInputComponent.h"
 #include "Components/SphereComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
+#include "Kismet/GameplayStatics.h"
 
 #define STOP_SPEED 0.1f
 #define STOP_TOLERANCE 5.f
@@ -59,14 +60,31 @@ void ABaseSkaterCharacter::BeginPlay()
 	GetCharacterMovement()->RotationRate = FRotator(0.f, RotationSpeed, 0.f);
 	EnableOrientRotationToMovement(bOrientRotationToMovement);
 
-	AbilitySystemComponent->InitAbilityActorInfo(this, this);
-
 	if (HasAuthority())
 	{
+		AbilitySystemComponent->InitAbilityActorInfo(this, this);
+
+		AttributeSet->InitMaxAcceleration(MaxAcceleration);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			USkaterAttributeSet::GetMaxAccelerationAttribute()).AddUObject(this, &ABaseSkaterCharacter::OnMaxAccelerationChanged);
+
+		AttributeSet->InitSkateSpeed(SkateSpeed);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			USkaterAttributeSet::GetSkateSpeedAttribute()).AddUObject(this, &ABaseSkaterCharacter::OnSkateSpeedChanged);
+
+		AttributeSet->InitMaxSkateSpeed(MaxSkateSpeed);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			USkaterAttributeSet::GetMaxSkateSpeedAttribute()).AddUObject(this, &ABaseSkaterCharacter::OnMaxSkateSpeedChanged);
+
+		AttributeSet->InitShotCharge(ShotCharge);
+		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
+			USkaterAttributeSet::GetShotChargeAttribute()).AddUObject(this, &ABaseSkaterCharacter::OnShotChargeChanged);
+
+
 		FGameplayAbilitySpec MoveAbilitySpec(MoveAbility, 1, (uint32)ESkaterAbilityInputID::Move, this);
 		AbilitySystemComponent->GiveAbility(MoveAbilitySpec);
 
-		FGameplayAbilitySpec StopAbilitySpec(UStopAbility::StaticClass(), 1, (uint32)ESkaterAbilityInputID::Stop, this);
+		FGameplayAbilitySpec StopAbilitySpec(StopAbility, 1, (uint32)ESkaterAbilityInputID::Stop, this);
 		AbilitySystemComponent->GiveAbility(StopAbilitySpec);
 	}
 }
@@ -109,10 +127,7 @@ void ABaseSkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	{
 		EnhancedInputComponent->BindAction(MoveInputAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnMoveInput);
 		EnhancedInputComponent->BindAction(StopInputAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnStopInput);
-	}
-	else
-	{
-		UE_LOG(LogTemp, Error, TEXT("'%s' Failed to find an Enhanced Input Component!"), *GetNameSafe(this));
+		EnhancedInputComponent->BindAction(BoostInputAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnBoostInput);
 	}
 }
 
@@ -124,6 +139,11 @@ void ABaseSkaterCharacter::OnMoveInput()
 void ABaseSkaterCharacter::OnStopInput()
 {
 	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Stop);
+}
+
+void ABaseSkaterCharacter::OnBoostInput()
+{
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Boost);
 }
 
 UAbilitySystemComponent* ABaseSkaterCharacter::GetAbilitySystemComponent() const
@@ -181,4 +201,29 @@ FVector ABaseSkaterCharacter::ComputeDirectionTo(FVector2D Location) const
 	FVector Direction = FVector(PlanarWorldDirection, 0);
 
 	return Direction;
+}
+
+void ABaseSkaterCharacter::OnMaxAccelerationChanged(const FOnAttributeChangeData& Data)
+{
+	GetCharacterMovement()->MaxAcceleration = Data.NewValue;
+}
+
+void ABaseSkaterCharacter::OnSkateSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	SkateSpeed = Data.NewValue;
+}
+
+void ABaseSkaterCharacter::OnMaxSkateSpeedChanged(const FOnAttributeChangeData& Data)
+{
+	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
+
+	//UE_LOG(LogTemp, Warning, TEXT("[%s | LocalController=%d | HasAuthority=%d] OnMaxSkateSpeedChanged = %f"),
+	//	*GetNameSafe(this),
+	//	IsLocallyControlled() ? 1 : 0,
+	//	HasAuthority() ? 1 : 0, MaxSkateSpeed);
+}
+
+void ABaseSkaterCharacter::OnShotChargeChanged(const FOnAttributeChangeData& Data)
+{
+	ShotCharge = Data.NewValue;
 }

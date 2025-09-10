@@ -13,6 +13,7 @@ class APlayerCamera;
 class FLifetimeProperty;
 class USphereComponent;
 class UInputAction;
+class USkaterAbility;
 class USkaterAttributeSet;
 
 UENUM(BlueprintType)
@@ -21,6 +22,8 @@ enum class ESkaterAbilityInputID : uint8
 	None        UMETA(DisplayName = "None"),
 	Move        UMETA(DisplayName = "Move"),
 	Stop        UMETA(DisplayName = "Stop"),
+	Slide       UMETA(DisplayName = "Slide"),
+	Boost       UMETA(DisplayName = "Boost"),
 };
 
 UCLASS(Abstract)
@@ -56,9 +59,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* StopInputAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* BoostInputAction;
+
 	void OnMoveInput();
 
 	void OnStopInput();
+
+	void OnBoostInput();
 
 	// Abilities
 protected:
@@ -69,7 +77,13 @@ protected:
 	USkaterAttributeSet* AttributeSet;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
-	TSubclassOf<UGameplayAbility> MoveAbility;
+	TSubclassOf<USkaterAbility> MoveAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> StopAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> BoostAbility;
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
@@ -102,22 +116,29 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bOrientRotationToMovement = true;
 
-private:
-	UPROPERTY(Replicated)
+protected:
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	FVector2D MoveDestination;
 
-	UPROPERTY(Replicated)
+	UPROPERTY(BlueprintReadOnly, Replicated)
 	bool bIsMoving = false;
+
+	UPROPERTY(BlueprintReadOnly)
+	float ShotCharge = 0.f;
 
 public:
 	ABaseSkaterCharacter();
 
+	UFUNCTION(BlueprintCallable)
 	void SetMoveDestination(FVector2D Destination);
 
+	UFUNCTION(BlueprintCallable)
 	void StopMovement();
 
+	UFUNCTION(BlueprintCallable)
 	void EnableOrientRotationToMovement(bool Enable);
 
+	UFUNCTION(BlueprintCallable)
 	void FaceDirection(const FVector& Direction);
 
 protected:
@@ -127,6 +148,11 @@ protected:
 
 	UFUNCTION(BlueprintPure)
 	FVector ComputeDirectionTo(FVector2D Location) const;
+
+	void OnMaxAccelerationChanged(const FOnAttributeChangeData& Data);
+	void OnSkateSpeedChanged(const FOnAttributeChangeData& Data);
+	void OnMaxSkateSpeedChanged(const FOnAttributeChangeData& Data);
+	void OnShotChargeChanged(const FOnAttributeChangeData& Data);
 
 public:	
 	virtual void Tick(float DeltaTime) override;
