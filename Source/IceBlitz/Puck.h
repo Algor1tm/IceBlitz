@@ -26,7 +26,7 @@ public:
 	TObjectPtr<UStaticMeshComponent> PuckMesh;
 
 protected:
-	bool bHasOwner = false;
+	ABaseSkaterCharacter* SkaterOwner = nullptr;
 
 protected:
 	virtual void BeginPlay() override;
@@ -34,11 +34,15 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
-	void SetSkaterOwner(ABaseSkaterCharacter* Skater);
+	void OnPickUp(ABaseSkaterCharacter* Skater);
 
-	void ReleaseOwner();
+	void OnRelease();
 
+	UFUNCTION(BlueprintPure)
 	bool HasOwner() const;
+
+	UFUNCTION(BlueprintPure)
+	ABaseSkaterCharacter* GetSkaterOwner() const;
 
 	void Shoot(FVector Direction, float Power);
 };

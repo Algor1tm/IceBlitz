@@ -19,19 +19,30 @@ class ICEBLITZ_API USkaterAttributeSet : public UAttributeSet
 	GENERATED_BODY()
 
 public:
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+    UPROPERTY(BlueprintReadOnly, Category = "Movement")
     FGameplayAttributeData MaxAcceleration;
     ATTRIBUTE_ACCESSORS(USkaterAttributeSet, MaxAcceleration);
 
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes")
-    FGameplayAttributeData SkateSpeed;
-    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, SkateSpeed);
-
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+    UPROPERTY(BlueprintReadOnly, Category = "Movement")
     FGameplayAttributeData MaxSkateSpeed;
     ATTRIBUTE_ACCESSORS(USkaterAttributeSet, MaxSkateSpeed);
 
-    UPROPERTY(BlueprintReadOnly, Category = "Attributes")
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_SkateSpeed, Category = "Movement")
+    FGameplayAttributeData SkateSpeed;
+    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, SkateSpeed);
+
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_ShotCharge, Category = "Shooting")
     FGameplayAttributeData ShotCharge;
     ATTRIBUTE_ACCESSORS(USkaterAttributeSet, ShotCharge);
+
+    virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+    virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
+
+    virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+    UFUNCTION()
+    void OnRep_SkateSpeed(const FGameplayAttributeData& OldValue);
+
+    UFUNCTION()
+    void OnRep_ShotCharge(const FGameplayAttributeData& OldValue);
 };

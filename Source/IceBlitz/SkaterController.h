@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "InputActionValue.h"
 #include "GameFramework/PlayerController.h"
 #include "SkaterController.generated.h"
 
@@ -19,25 +20,49 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	TArray<UInputMappingContext*> MappingContexts;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
-	TObjectPtr<UInputAction> CenterCameraAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* CenterCameraAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Gameplay")
-	TObjectPtr<UInputAction> ToggleCameraAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* ToggleCameraAction;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Gameplay")
+	void OnCenterCameraInput();
+
+	void OnToggleCameraInput();
+
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Camera")
 	TSubclassOf<APlayerCamera> PlayerCameraClass;
 
-	UPROPERTY(EditAnywhere, Category = "Gameplay")
+	UPROPERTY(EditAnywhere, Category = "Camera")
 	float ScrollSpeed = 2000.f;
+
+	UPROPERTY(EditAnywhere, Category = "Camera")
+	float EdgePixelsTolerance = 4.f;
+
+	UPROPERTY(EditAnywhere, Category = "Network")
+	float ClientCursorUpdateRate = 60.f;
+
+	UPROPERTY(EditAnywhere, Category = "Network")
+	float ServerCursorUpdateRate = 10.f;
 
 private:
 	APlayerCamera* CameraActor = nullptr;
 
 	bool bCameraEnabled = false;
 
+	FTimerHandle ClientCursorUpdateTimerHandle;
+	FTimerHandle ServerCursorUpdateTimerHandle;
+
+	FVector2f CachedCursorPosition;
+	FVector2f CursorTarget;
+	FVector2f CurrentServerCursorTarget;
+
 public:
 	ASkaterController();
+
+	UFUNCTION(BlueprintPure)
+	FVector2f GetCursorTarget() const { return CursorTarget; }
 
 protected:
 	virtual void BeginPlay() override;
@@ -50,6 +75,7 @@ protected:
 
 	virtual void SetupInputComponent() override;
 
+protected:
 	void SpawnAndSetCamera();
 
 	void CenterCamera();
@@ -57,4 +83,17 @@ protected:
 	void ToggleCamera();
 
 	void EnableCamera(bool Enable);
+
+	void StartCursorTargetUpdates();
+
+	void StopCursorTargetUpdates();
+
+	void UpdateClientCursorTarget();
+
+	void UpdateServerCursorTarget();
+
+	// maybe Unreliable?
+	// should probably use quantized vector
+	UFUNCTION(Server, Reliable)
+	void ServerSendCursorTarget(FVector2f ClientCursorTarget);
 };

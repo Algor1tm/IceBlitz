@@ -10,6 +10,7 @@
 
 class APuck;
 class APlayerCamera;
+class ASkaterController;
 class FLifetimeProperty;
 class USphereComponent;
 class UInputAction;
@@ -24,6 +25,7 @@ enum class ESkaterAbilityInputID : uint8
 	Stop        UMETA(DisplayName = "Stop"),
 	Slide       UMETA(DisplayName = "Slide"),
 	Boost       UMETA(DisplayName = "Boost"),
+	Shoot       UMETA(DisplayName = "Shoot"),
 };
 
 UCLASS(Abstract)
@@ -62,11 +64,21 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* BoostInputAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* ShootInputAction;
+
 	void OnMoveInput();
 
 	void OnStopInput();
 
 	void OnBoostInput();
+
+	void OnShootInputPressed();
+
+	void OnShootInputReleased();
+
+	UFUNCTION(Server, Reliable)
+	void ServerOnShootInputReleased();
 
 	// Abilities
 protected:
@@ -85,7 +97,32 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
 	TSubclassOf<USkaterAbility> BoostAbility;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> ShootAbility;
+
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float ShootBasePower = 315.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float ShootChargeFactor = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float ShootMaxDistanceToCursor = 2000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float ShootDistanceToCursorFactor = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float ShootMaxSkaterSpeed = 1000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float ShootSpeedFactor = 1.75f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float PuckPickUpCooldown = 0.275f;
 
 	// Movement
 protected:
@@ -118,19 +155,21 @@ protected:
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Replicated)
-	FVector2D MoveDestination;
+	FVector2f MoveDestination;
 
 	UPROPERTY(BlueprintReadOnly, Replicated)
 	bool bIsMoving = false;
 
-	UPROPERTY(BlueprintReadOnly)
-	float ShotCharge = 0.f;
+	UPROPERTY(BlueprintReadOnly, Replicated)
+	APuck* Puck;
+
+	FTimerHandle DisablePickUpTimerHandle;
 
 public:
 	ABaseSkaterCharacter();
 
 	UFUNCTION(BlueprintCallable)
-	void SetMoveDestination(FVector2D Destination);
+	void SetMoveDestination(FVector2f Destination);
 
 	UFUNCTION(BlueprintCallable)
 	void StopMovement();
@@ -146,16 +185,41 @@ protected:
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 
-	UFUNCTION(BlueprintPure)
-	FVector ComputeDirectionTo(FVector2D Location) const;
+	UFUNCTION(BlueprintCallable)
+	bool ShootPuck();
 
+	float ComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const;
+
+	UFUNCTION(Client, Reliable)
+	void ClientStopPostShot(FVector ShotDirection);
+
+	UFUNCTION()
+	void OnPuckPickUp(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	void DisablePuckPickUpForTime();
+
+	void EnablePuckPickUp();
+
+	UFUNCTION(BlueprintPure)
+	FVector2f GetCursorTarget() const;
+
+	UFUNCTION(BlueprintPure)
+	FVector ComputeDirectionTo(FVector2f Location) const;
+
+	UFUNCTION(BlueprintPure)
+	FVector ComputeDirectionFromPuckTo(FVector2f Location) const;
+
+	// Attributes
+protected:
 	void OnMaxAccelerationChanged(const FOnAttributeChangeData& Data);
-	void OnSkateSpeedChanged(const FOnAttributeChangeData& Data);
+
 	void OnMaxSkateSpeedChanged(const FOnAttributeChangeData& Data);
-	void OnShotChargeChanged(const FOnAttributeChangeData& Data);
 
 public:	
 	virtual void Tick(float DeltaTime) override;
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION(BlueprintCallable)
+	UStaticMeshComponent* GetStickMeshComponent() const { return StickMesh; }
 };

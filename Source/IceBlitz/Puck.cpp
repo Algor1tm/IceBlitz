@@ -3,33 +3,37 @@
 
 #include "Puck.h"
 #include "BaseSkaterCharacter.h"
+
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
+#include "Net/UnrealNetwork.h"
 
 
 APuck::APuck()
 {
 	PrimaryActorTick.bCanEverTick = true;
-	
+	bReplicates = true;
+
 	CylinderCollider = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CylinderColliderMesh"));
 	RootComponent = CylinderCollider;
-	CylinderCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	CylinderCollider->SetVisibility(false);
-
-	CylinderCollider->GetBodyInstance()->bLockXRotation = true;
-	CylinderCollider->GetBodyInstance()->bLockYRotation = true;
-	CylinderCollider->GetBodyInstance()->bLockZRotation = true;
-	CylinderCollider->SetSimulatePhysics(true);
+	CylinderCollider->SetIsReplicated(true);
+	CylinderCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	PuckMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("PuckMesh"));
 	PuckMesh->SetupAttachment(CylinderCollider);
 	PuckMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PuckMesh->SetSimulatePhysics(false);
 }
 
 void APuck::BeginPlay()
 {
 	Super::BeginPlay();
+
+	if (HasAuthority())
+	{
+		CylinderCollider->SetSimulatePhysics(true);
+	}
 }
 
 void APuck::Tick(float DeltaTime)
@@ -37,32 +41,41 @@ void APuck::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void APuck::SetSkaterOwner(ABaseSkaterCharacter* Skater)
+void APuck::OnPickUp(ABaseSkaterCharacter* Skater)
 {
-	//FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, true);
-	//RootComponent->AttachToComponent(Skater->GetStickMeshComponent(), AttachmentRules, FName("PuckSocket"));
-	//
-	//CylinderCollider->SetSimulatePhysics(false);
-	//CylinderCollider->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	//
-	//bHasOwner = true;
+	if (!HasAuthority() || !Skater)
+		return;
+
+	FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, EAttachmentRule::KeepWorld, true);
+	RootComponent->AttachToComponent(Skater->GetStickMeshComponent(), AttachmentRules, FName("PuckSocket"));
+
+	CylinderCollider->SetSimulatePhysics(false);
+
+	SkaterOwner = Skater;
 }
 
-void APuck::ReleaseOwner()
+void APuck::OnRelease()
 {
-	//FDetachmentTransformRules DetachmentRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false);
-	//RootComponent->DetachFromComponent(DetachmentRules);
-	//
-	//CylinderCollider->SetPhysicsLinearVelocity(FVector::ZeroVector);
-	//CylinderCollider->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	//CylinderCollider->SetSimulatePhysics(true);
-	//
-	//bHasOwner = false;
+	if (!HasAuthority())
+		return;
+
+	FDetachmentTransformRules DetachmentRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false);
+	RootComponent->DetachFromComponent(DetachmentRules);
+
+	CylinderCollider->SetPhysicsLinearVelocity(FVector::ZeroVector);
+	CylinderCollider->SetSimulatePhysics(true);
+
+	SkaterOwner = nullptr;
 }
 
 bool APuck::HasOwner() const
 {
-	return bHasOwner;
+	return SkaterOwner != nullptr;
+}
+
+ABaseSkaterCharacter* APuck::GetSkaterOwner() const
+{
+	return SkaterOwner;
 }
 
 void APuck::Shoot(FVector Direction, float Power)

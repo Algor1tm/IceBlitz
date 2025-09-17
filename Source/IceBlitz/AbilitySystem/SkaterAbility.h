@@ -4,11 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Abilities/GameplayAbility.h"
+#include "GameplayTagContainer.h"
 #include "SkaterAbility.generated.h"
 
-/**
- * 
- */
+class ABaseSkaterCharacter;
+
 UCLASS()
 class ICEBLITZ_API USkaterAbility : public UGameplayAbility
 {
@@ -18,5 +18,21 @@ public:
 	virtual void OnGiveAbility(const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilitySpec& Spec) override;
 
 	UFUNCTION(BlueprintNativeEvent)
-	void OnGiveAbilityEvent();
+	void OnGiveAbility();
+
+	UFUNCTION(BlueprintNativeEvent)
+	void OnInputReleased();
+
+	UFUNCTION(BlueprintPure)
+	bool AvatarHasGameplayTag(UPARAM(DisplayName = "Tag To Check") FGameplayTag TagToCheck) const;
+
+	UFUNCTION(BlueprintPure)
+	float GetWorldTimeSeconds() const;
+
+protected:
+	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
+
+protected:
+	UPROPERTY(BlueprintReadOnly)
+	ABaseSkaterCharacter* Skater;
 };

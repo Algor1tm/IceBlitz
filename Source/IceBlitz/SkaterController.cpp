@@ -3,16 +3,20 @@
 
 #include "SkaterController.h"
 #include "BaseSkaterCharacter.h"
+#include "PlayerCamera.h"
+
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "InputMappingContext.h"
-#include "PlayerCamera.h"
 #include "Engine/LocalPlayer.h"
+
+#define ECC_CursorTrace ECC_GameTraceChannel2
 
 
 ASkaterController::ASkaterController()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	CursorTarget = FVector2f(0.f);
 }
 
 void ASkaterController::BeginPlay()
@@ -23,6 +27,7 @@ void ASkaterController::BeginPlay()
 
 	bShowMouseCursor = true;
 	bAutoManageActiveCameraTarget = false;
+
 }
 
 void ASkaterController::OnPossess(APawn* aPawn)
@@ -33,6 +38,7 @@ void ASkaterController::OnPossess(APawn* aPawn)
 	if (IsLocalController() && HasAuthority() && !CameraActor)
 	{
 		SpawnAndSetCamera();
+		StartCursorTargetUpdates();
 	}
 }
 
@@ -44,6 +50,7 @@ void ASkaterController::OnRep_Pawn()
 	if (IsLocalController() && GetPawn() != nullptr && !HasAuthority() && !CameraActor)
 	{
 		SpawnAndSetCamera();
+		StartCursorTargetUpdates();
 	}
 }
 
@@ -70,10 +77,10 @@ void ASkaterController::SpawnAndSetCamera()
 		SetViewTarget(CameraActor);
 		CenterCamera();
 
-		UE_LOG(LogTemp, Warning, TEXT("[%s | LocalController=%d | HasAuthority=%d] Camera spawned"),
-			*GetNameSafe(this),
-			IsLocalController() ? 1 : 0,
-			HasAuthority() ? 1 : 0);
+		//UE_LOG(LogTemp, Warning, TEXT("[%s | LocalController=%d | HasAuthority=%d] Camera spawned"),
+		//	*GetNameSafe(this),
+		//	IsLocalController() ? 1 : 0,
+		//	HasAuthority() ? 1 : 0);
 	}
 }
 
@@ -89,10 +96,6 @@ void ASkaterController::Tick(float DeltaTime)
 
 	FVector2f MouseCursor;
 	GetMousePosition(MouseCursor.X, MouseCursor.Y);
-
-	float RatioX = MouseCursor.X / ViewportSize.X;
-	float RatioY = MouseCursor.Y / ViewportSize.Y;
-	const float EdgePixelsTolerance = 4.f;
 
 	float Delta = DeltaTime * ScrollSpeed;
 	FVector CameraOffset = FVector(0);
@@ -133,9 +136,19 @@ void ASkaterController::SetupInputComponent()
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(InputComponent))
 	{
-		EnhancedInputComponent->BindAction(CenterCameraAction, ETriggerEvent::Triggered, this, &ASkaterController::CenterCamera);
-		EnhancedInputComponent->BindAction(ToggleCameraAction, ETriggerEvent::Started, this, &ASkaterController::ToggleCamera);
+		EnhancedInputComponent->BindAction(CenterCameraAction, ETriggerEvent::Triggered, this, &ASkaterController::OnCenterCameraInput);
+		EnhancedInputComponent->BindAction(ToggleCameraAction, ETriggerEvent::Started, this, &ASkaterController::OnToggleCameraInput);
 	}
+}
+
+void ASkaterController::OnCenterCameraInput()
+{
+	CenterCamera();
+}
+
+void ASkaterController::OnToggleCameraInput()
+{
+	ToggleCamera();
 }
 
 void ASkaterController::CenterCamera()
@@ -166,4 +179,84 @@ void ASkaterController::EnableCamera(bool Enable)
 	InputMode.SetLockMouseToViewportBehavior(MouseMode);
 	InputMode.SetHideCursorDuringCapture(false);
 	SetInputMode(InputMode);
+}
+
+void ASkaterController::StartCursorTargetUpdates()
+{
+	if (!IsLocalController())
+		return;
+
+	CachedCursorPosition = FVector2f(0.f);
+	CurrentServerCursorTarget = CursorTarget = FVector2f(0.f);
+
+	GetWorld()->GetTimerManager().SetTimer(
+		ClientCursorUpdateTimerHandle,
+		this,
+		&ASkaterController::UpdateClientCursorTarget, 1.f / ClientCursorUpdateRate, true);
+
+	GetWorld()->GetTimerManager().SetTimer(
+		ServerCursorUpdateTimerHandle,
+		this,
+		&ASkaterController::UpdateServerCursorTarget, 1.f / ServerCursorUpdateRate, true);
+}
+
+void ASkaterController::StopCursorTargetUpdates()
+{
+	if (!IsLocalController())
+		return;
+
+	GetWorld()->GetTimerManager().ClearTimer(ServerCursorUpdateTimerHandle);
+	GetWorld()->GetTimerManager().ClearTimer(ClientCursorUpdateTimerHandle);
+}
+
+void ASkaterController::UpdateClientCursorTarget()
+{
+	FVector2f CurrentCursorPosition;
+	GetMousePosition(CurrentCursorPosition.X, CurrentCursorPosition.Y);
+
+	FIntPoint ViewportSize;
+	GetViewportSize(ViewportSize.X, ViewportSize.Y);
+
+	bool PerformHit = false;
+
+	if (CurrentCursorPosition.X > 1 && CurrentCursorPosition.X < ViewportSize.X - 1
+		&& CurrentCursorPosition.Y > 1 && CurrentCursorPosition.Y < ViewportSize.Y - 1)
+	{
+		if (!CachedCursorPosition.Equals(CurrentCursorPosition))
+		{
+			CachedCursorPosition = CurrentCursorPosition;
+			PerformHit = true;
+		}
+	}
+
+	if (!PerformHit)
+		return;
+
+	FHitResult HitResult;
+	bool bHitSuccess = GetHitResultUnderCursor(ECollisionChannel::ECC_CursorTrace, false, HitResult);
+
+	FVector2f Result;
+	if (bHitSuccess && HitResult.bBlockingHit)
+	{
+		Result = FVector2f(HitResult.Location.X, HitResult.Location.Y);
+
+		if (!CursorTarget.Equals(Result, 0.001f))
+		{
+			CursorTarget = Result;
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Failed to find location under cursor!"));
+	}
+}
+
+void ASkaterController::UpdateServerCursorTarget()
+{
+	ServerSendCursorTarget(CursorTarget);
+}
+
+void ASkaterController::ServerSendCursorTarget_Implementation(FVector2f ClientCursorTarget)
+{
+	CursorTarget = ClientCursorTarget;
 }
