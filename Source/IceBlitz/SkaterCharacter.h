@@ -15,13 +15,21 @@ class ICEBLITZ_API ASkaterCharacter : public ABaseSkaterCharacter
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* BoostInputAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* SlideInputAction;
+
+	void OnBoostInput();
 
 	void OnSlideInput();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
 	TSubclassOf<USkaterAbility> SlideAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> BoostAbility;
 
 public:
 	ASkaterCharacter();

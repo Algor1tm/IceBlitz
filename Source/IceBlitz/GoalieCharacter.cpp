@@ -5,6 +5,8 @@
 #include "AbilitySystem/SkaterAbility.h"
 #include "AbilitySystem/SkaterAttributeSet.h"
 
+#include "EnhancedInputComponent.h"
+
 
 AGoalieCharacter::AGoalieCharacter()
 {
@@ -30,4 +32,14 @@ void AGoalieCharacter::Tick(float DeltaTime)
 void AGoalieCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(BoostInputAction, ETriggerEvent::Started, this, &AGoalieCharacter::OnBoostInput);
+	}
+}
+
+void AGoalieCharacter::OnBoostInput()
+{
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Boost);
 }

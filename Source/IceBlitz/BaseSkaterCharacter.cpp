@@ -4,6 +4,7 @@
 #include "BaseSkaterCharacter.h"
 #include "Puck.h"
 #include "PlayerCamera.h"
+#include "StickComponent.h"
 #include "SkaterController.h"
 #include "AbilitySystem/SkaterAbility.h"
 #include "AbilitySystem/SkaterAttributeSet.h"
@@ -11,6 +12,7 @@
 #include "InputAction.h"
 #include "EnhancedInputComponent.h"
 #include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Kismet/GameplayStatics.h"
@@ -24,30 +26,30 @@ ABaseSkaterCharacter::ABaseSkaterCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
 
-	StickMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Stick"));
-	StickMesh->SetupAttachment(GetMesh());
-	StickMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Stick = CreateDefaultSubobject<UStickComponent>(TEXT("Stick"));
+	Stick->SetupAttachment(GetMesh());
 
 	AbilitySystemComponent = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystemComponent"));
-	if (AbilitySystemComponent)
-	{
-		AbilitySystemComponent->SetIsReplicated(true);
-		AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
-	}
+	AbilitySystemComponent->SetIsReplicated(true);
+	AbilitySystemComponent->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	AttributeSet = CreateDefaultSubobject<USkaterAttributeSet>(TEXT("AttributeSet"));
 
 	StickPickUpTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("StickPickUpTrigger"));
-	StickPickUpTrigger->SetupAttachment(StickMesh);
+	StickPickUpTrigger->SetupAttachment(Stick);
 
 	MeshPickUpTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MeshPickUpTrigger"));
 	MeshPickUpTrigger->SetupAttachment(GetMesh());
 
-	StickStealTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("StickStealTrigger"));
-	StickStealTrigger->SetupAttachment(StickMesh);
+	StickStealRangeTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("StickStealTrigger"));
+	StickStealRangeTrigger->SetupAttachment(Stick);
 
-	MeshStealTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MeshStealTrigger"));
-	MeshStealTrigger->SetupAttachment(GetMesh());
+	MeshStealRangeTrigger = CreateDefaultSubobject<USphereComponent>(TEXT("MeshStealTrigger"));
+	MeshStealRangeTrigger->SetupAttachment(GetMesh());
+
+	EnemyStealRangeTrigger = CreateDefaultSubobject<UCapsuleComponent>(TEXT("EnemyStealTrigger"));
+	EnemyStealRangeTrigger->SetupAttachment(GetMesh());
+	EnemyStealRangeTrigger->SetIsReplicated(true);
 }
 
 void ABaseSkaterCharacter::BeginPlay()
@@ -62,11 +64,16 @@ void ABaseSkaterCharacter::BeginPlay()
 	EnableOrientRotationToMovement(bOrientRotationToMovement);
 
 
-
 	if (HasAuthority())
 	{
-		StickPickUpTrigger->OnComponentBeginOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnPuckPickUp);
-		MeshPickUpTrigger->OnComponentBeginOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnPuckPickUp);
+		StickPickUpTrigger->OnComponentBeginOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnPuckOverlap);
+		MeshPickUpTrigger->OnComponentBeginOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnPuckOverlap);
+
+		StickStealRangeTrigger->OnComponentBeginOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnStealRangeBegin);
+		MeshStealRangeTrigger->OnComponentBeginOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnStealRangeBegin);
+
+		StickStealRangeTrigger->OnComponentEndOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnStealRangeEnd);
+		MeshStealRangeTrigger->OnComponentEndOverlap.AddDynamic(this, &ABaseSkaterCharacter::OnStealRangeEnd);
 
 
 		AbilitySystemComponent->InitAbilityActorInfo(this, this);
@@ -89,6 +96,9 @@ void ABaseSkaterCharacter::BeginPlay()
 
 		FGameplayAbilitySpec ShootAbilitySpec(ShootAbility, 1, (uint32)ESkaterAbilityInputID::Shoot, this);
 		AbilitySystemComponent->GiveAbility(ShootAbilitySpec);
+
+		FGameplayAbilitySpec StealAbilitySpec(StealAbility, 1, (uint32)ESkaterAbilityInputID::Steal, this);
+		AbilitySystemComponent->GiveAbility(StealAbilitySpec);
 	}
 }
 
@@ -132,7 +142,6 @@ void ABaseSkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	{
 		EnhancedInputComponent->BindAction(MoveInputAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnMoveInput);
 		EnhancedInputComponent->BindAction(StopInputAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnStopInput);
-		EnhancedInputComponent->BindAction(BoostInputAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnBoostInput);
 		EnhancedInputComponent->BindAction(ShootInputAction, ETriggerEvent::Started, this, &ABaseSkaterCharacter::OnShootInputPressed);
 		EnhancedInputComponent->BindAction(ShootInputAction, ETriggerEvent::Completed, this, &ABaseSkaterCharacter::OnShootInputReleased);
 	}
@@ -163,14 +172,10 @@ void ABaseSkaterCharacter::OnStopInput()
 	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Stop);
 }
 
-void ABaseSkaterCharacter::OnBoostInput()
-{
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Boost);
-}
-
 void ABaseSkaterCharacter::OnShootInputPressed()
 {
 	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Shoot);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Steal);
 }
 
 void ABaseSkaterCharacter::OnShootInputReleased()
@@ -209,13 +214,12 @@ void ABaseSkaterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>&
 	DOREPLIFETIME(ABaseSkaterCharacter, Puck);
 }
 
-bool ABaseSkaterCharacter::ShootPuck()
+float ABaseSkaterCharacter::ShootPuck()
 {
-	if (!Puck)
-		return false;
+	if (!Puck || !HasAuthority())
+		return 0.f;
 
 	FVector2f Cursor = GetCursorTarget();
-	UE_LOG(LogTemp, Warning, TEXT("cursor X = %f, Y = %f!"), Cursor.X, Cursor.Y);
 	FVector Direction = ComputeDirectionFromPuckTo(Cursor);
 	float DistanceToCursor = Direction.Length();
 	Direction = Direction.GetSafeNormal();
@@ -228,12 +232,14 @@ bool ABaseSkaterCharacter::ShootPuck()
 	DisablePuckPickUpForTime();
 
 	Puck->OnRelease();
-	Puck->Shoot(Direction, Power);
+	if(!Puck->HasOwner())
+		Puck->Shoot(Direction, Power);
+
 	Puck = nullptr;
 
 	ClientStopPostShot(Direction);
 
-	return true;
+	return Power;
 }
 
 float ABaseSkaterCharacter::ComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const
@@ -250,7 +256,7 @@ float ABaseSkaterCharacter::ComputeShotPower(const FVector& Direction, float Dis
 	float MinPower = ShootBasePower * 0.2f;
 	float Power = MinPower + ShootBasePower * TotalModifiers;
 
-	UE_LOG(LogTemp, Warning, TEXT("Shot Power: %f, Speed: %f"), Power, VelocityProjection);
+	UE_LOG(LogTemp, Warning, TEXT("Power: %f"), Power);
 
 	return Power;
 }
@@ -303,18 +309,36 @@ void ABaseSkaterCharacter::FaceDirection(const FVector& Direction)
 	}
 }
 
-void ABaseSkaterCharacter::OnPuckPickUp(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void ABaseSkaterCharacter::OnPuckOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if(!HasAuthority())
+		return;
+
 	APuck* PuckActor = Cast<APuck>(OtherActor);
 
 	if (PuckActor && !PuckActor->HasOwner() && !Puck)
 	{
-		Puck = PuckActor;
-		Puck->OnPickUp(this);
-
-		FGameplayTag HasPuckTag = FGameplayTag::RequestGameplayTag(FName("SkaterState.HasPuck"));
-		AbilitySystemComponent->AddLooseGameplayTag(HasPuckTag);
+		PickUpPuck(PuckActor);
 	}
+}
+
+void ABaseSkaterCharacter::PickUpPuck(APuck* aPuck)
+{
+	// Future: Trigger one-timer shot here
+
+	OnPuckReceive(aPuck);
+}
+
+void ABaseSkaterCharacter::OnPuckReceive(APuck* aPuck)
+{
+	if (!HasAuthority())
+		return;
+
+	Puck = aPuck;
+	Puck->SetSkaterOwner(this);
+
+	FGameplayTag HasPuckTag = FGameplayTag::RequestGameplayTag(FName("SkaterState.HasPuck"));
+	AbilitySystemComponent->AddLooseGameplayTag(HasPuckTag);
 }
 
 void ABaseSkaterCharacter::DisablePuckPickUpForTime()
@@ -337,6 +361,90 @@ void ABaseSkaterCharacter::EnablePuckPickUp()
 	MeshPickUpTrigger->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 }
 
+void ABaseSkaterCharacter::OnStealRangeBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (!HasAuthority())
+		return;
+
+	ABaseSkaterCharacter* SkaterActor = Cast<ABaseSkaterCharacter>(OtherActor);
+
+	if (!IsValid(SkaterActor) || SkaterActor == this)
+		return;
+
+	uint8& OverlapCount = StealableCharacters.FindOrAdd(SkaterActor, 0);
+	OverlapCount++;
+
+	if (OverlapCount > 2)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Invalid stealable characters map!"));
+		return;
+	}
+}
+
+void ABaseSkaterCharacter::OnStealRangeEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+	if (!HasAuthority())
+		return;
+
+	ABaseSkaterCharacter* SkaterActor = Cast<ABaseSkaterCharacter>(OtherActor);
+
+	if (!IsValid(SkaterActor) || SkaterActor == this)
+		return;
+
+	uint8* OverlapCountPtr = StealableCharacters.Find(SkaterActor);
+
+	if (OverlapCountPtr == nullptr || *OverlapCountPtr == 0 || *OverlapCountPtr > 2)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Invalid stealable characters map!"));
+		return;
+	}
+
+	*OverlapCountPtr -= 1;
+
+	if (*OverlapCountPtr == 0)
+	{
+		StealableCharacters.Remove(SkaterActor);
+	}
+
+}
+
+bool ABaseSkaterCharacter::TryStealPuck()
+{
+	if (Puck || !HasAuthority())
+		return false;
+	
+	ABaseSkaterCharacter* Target = nullptr;
+	for (const auto& [Skater, Count] : StealableCharacters)
+	{
+		if (Skater->Puck != nullptr)
+		{
+			Target = Skater;
+			break;
+		}
+	}
+
+	if (!Target)
+		return false;
+
+	APuck* OtherPuck = Target->Puck;
+	Target->OnPuckStolen();
+
+	OnPuckReceive(OtherPuck);
+
+	return true;
+}
+
+void ABaseSkaterCharacter::OnPuckStolen()
+{
+	if (!Puck || !HasAuthority())
+		return;
+
+	Puck = nullptr;
+
+	FGameplayTag HasPuckTag = FGameplayTag::RequestGameplayTag(FName("SkaterState.HasPuck"));
+	AbilitySystemComponent->RemoveLooseGameplayTag(HasPuckTag);
+}
+
 FVector2f ABaseSkaterCharacter::GetCursorTarget() const
 {
 	ASkaterController* SkaterController = Cast<ASkaterController>(GetController());
@@ -344,7 +452,6 @@ FVector2f ABaseSkaterCharacter::GetCursorTarget() const
 	{
 		UE_LOG(LogTemp, Error, TEXT("ABaseSkaterCharacter: failed to get SkaterController"));
 		return FVector2f(0.f);
-
 	}
 
 	return SkaterController->GetCursorTarget();

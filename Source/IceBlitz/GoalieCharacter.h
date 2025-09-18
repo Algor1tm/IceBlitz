@@ -6,13 +6,22 @@
 #include "BaseSkaterCharacter.h"
 #include "GoalieCharacter.generated.h"
 
+class USkaterAbility;
+
 UCLASS()
 class ICEBLITZ_API AGoalieCharacter : public ABaseSkaterCharacter
 {
 	GENERATED_BODY()
 
-	// Private impl
 protected:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* BoostInputAction;
+
+	void OnBoostInput();
+
+protected:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> BoostAbility;
 
 public:
 	AGoalieCharacter();

@@ -34,7 +34,7 @@ protected:
 public:	
 	virtual void Tick(float DeltaTime) override;
 
-	void OnPickUp(ABaseSkaterCharacter* Skater);
+	void SetSkaterOwner(ABaseSkaterCharacter* Skater);
 
 	void OnRelease();
 

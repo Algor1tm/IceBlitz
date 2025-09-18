@@ -40,8 +40,15 @@ void ASkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
+		EnhancedInputComponent->BindAction(BoostInputAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnBoostInput);
+
 		EnhancedInputComponent->BindAction(SlideInputAction, ETriggerEvent::Started, this, &ASkaterCharacter::OnSlideInput);
 	}
+}
+
+void ASkaterCharacter::OnBoostInput()
+{
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Boost);
 }
 
 void ASkaterCharacter::OnSlideInput()

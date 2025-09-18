@@ -92,8 +92,6 @@ protected:
 
 	void UpdateServerCursorTarget();
 
-	// maybe Unreliable?
-	// should probably use quantized vector
-	UFUNCTION(Server, Reliable)
+	UFUNCTION(Server, Unreliable)
 	void ServerSendCursorTarget(FVector2f ClientCursorTarget);
 };

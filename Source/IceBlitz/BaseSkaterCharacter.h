@@ -12,7 +12,9 @@ class APuck;
 class APlayerCamera;
 class ASkaterController;
 class FLifetimeProperty;
+class UStickComponent;
 class USphereComponent;
+class UCapsuleComponent;
 class UInputAction;
 class USkaterAbility;
 class USkaterAttributeSet;
@@ -23,9 +25,11 @@ enum class ESkaterAbilityInputID : uint8
 	None        UMETA(DisplayName = "None"),
 	Move        UMETA(DisplayName = "Move"),
 	Stop        UMETA(DisplayName = "Stop"),
-	Slide       UMETA(DisplayName = "Slide"),
-	Boost       UMETA(DisplayName = "Boost"),
 	Shoot       UMETA(DisplayName = "Shoot"),
+	Steal       UMETA(DisplayName = "Steal"),
+
+	Boost       UMETA(DisplayName = "Boost"),
+	Slide       UMETA(DisplayName = "Slide"),
 };
 
 UCLASS(Abstract)
@@ -36,10 +40,7 @@ class ICEBLITZ_API ABaseSkaterCharacter : public ACharacter, public IAbilitySyst
 	// General
 protected:
 	UPROPERTY(EditAnywhere, Category = "Mesh")
-	UStaticMeshComponent* StickMesh;
-
-	UPROPERTY(BlueprintReadWrite)
-	APlayerCamera* PlayerCamera;
+	UStickComponent* Stick;
 
 	UPROPERTY(EditAnywhere, Category = "Triggers")
 	USphereComponent* StickPickUpTrigger;
@@ -48,10 +49,13 @@ protected:
 	USphereComponent* MeshPickUpTrigger;
 
 	UPROPERTY(EditAnywhere, Category = "Triggers")
-	USphereComponent* StickStealTrigger;
+	USphereComponent* StickStealRangeTrigger;
 
 	UPROPERTY(EditAnywhere, Category = "Triggers")
-	USphereComponent* MeshStealTrigger;
+	USphereComponent* MeshStealRangeTrigger;
+
+	UPROPERTY(EditAnywhere, Category = "Triggers")
+	UCapsuleComponent* EnemyStealRangeTrigger;
 
 	// Input
 protected:
@@ -62,16 +66,11 @@ protected:
 	UInputAction* StopInputAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
-	UInputAction* BoostInputAction;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* ShootInputAction;
 
 	void OnMoveInput();
 
 	void OnStopInput();
-
-	void OnBoostInput();
 
 	void OnShootInputPressed();
 
@@ -95,10 +94,10 @@ protected:
 	TSubclassOf<USkaterAbility> StopAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
-	TSubclassOf<USkaterAbility> BoostAbility;
+	TSubclassOf<USkaterAbility> ShootAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
-	TSubclassOf<USkaterAbility> ShootAbility;
+	TSubclassOf<USkaterAbility> StealAbility;
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 
@@ -165,6 +164,9 @@ protected:
 
 	FTimerHandle DisablePickUpTimerHandle;
 
+	// 1 - skater actor, 2 - number of intersections > 0
+	TMap<ABaseSkaterCharacter*, uint8> StealableCharacters;
+
 public:
 	ABaseSkaterCharacter();
 
@@ -180,13 +182,15 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void FaceDirection(const FVector& Direction);
 
+	void PickUpPuck(APuck* aPuck);
+
 protected:
 	virtual void BeginPlay() override;
 
 	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 
 	UFUNCTION(BlueprintCallable)
-	bool ShootPuck();
+	float ShootPuck();
 
 	float ComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const;
 
@@ -194,11 +198,24 @@ protected:
 	void ClientStopPostShot(FVector ShotDirection);
 
 	UFUNCTION()
-	void OnPuckPickUp(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnPuckOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	void OnPuckReceive(APuck* aPuck);
 
 	void DisablePuckPickUpForTime();
 
 	void EnablePuckPickUp();
+
+	UFUNCTION()
+	void OnStealRangeBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnStealRangeEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	UFUNCTION(BlueprintCallable)
+	bool TryStealPuck();
+
+	void OnPuckStolen();
 
 	UFUNCTION(BlueprintPure)
 	FVector2f GetCursorTarget() const;
@@ -220,6 +237,6 @@ public:
 
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	UFUNCTION(BlueprintCallable)
-	UStaticMeshComponent* GetStickMeshComponent() const { return StickMesh; }
+	UFUNCTION(BlueprintPure)
+	UStickComponent* GetStick() const { return Stick; }
 };
