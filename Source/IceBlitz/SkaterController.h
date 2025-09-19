@@ -35,6 +35,12 @@ protected:
 	TSubclassOf<APlayerCamera> PlayerCameraClass;
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
+	FVector CameraBoundsMin = FVector(-2400.f, -1200.f, 0.f);
+
+	UPROPERTY(EditAnywhere, Category = "Camera")
+	FVector CameraBoundsMax = FVector(2400.f, 900.f, 0.f);
+
+	UPROPERTY(EditAnywhere, Category = "Camera")
 	float ScrollSpeed = 2000.f;
 
 	UPROPERTY(EditAnywhere, Category = "Camera")
@@ -44,7 +50,7 @@ protected:
 	float ClientCursorUpdateRate = 60.f;
 
 	UPROPERTY(EditAnywhere, Category = "Network")
-	float ServerCursorUpdateRate = 10.f;
+	float ServerCursorUpdateRate = 15.f;
 
 private:
 	APlayerCamera* CameraActor = nullptr;

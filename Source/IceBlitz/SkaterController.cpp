@@ -27,7 +27,6 @@ void ASkaterController::BeginPlay()
 
 	bShowMouseCursor = true;
 	bAutoManageActiveCameraTarget = false;
-
 }
 
 void ASkaterController::OnPossess(APawn* aPawn)
@@ -88,38 +87,49 @@ void ASkaterController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (!CameraActor || !bCameraEnabled || !IsLocalController())
+	if (!CameraActor || !IsLocalController())
 		return;
 
-	FIntPoint ViewportSize;
-	GetViewportSize(ViewportSize.X, ViewportSize.Y);
-
-	FVector2f MouseCursor;
-	GetMousePosition(MouseCursor.X, MouseCursor.Y);
-
-	float Delta = DeltaTime * ScrollSpeed;
-	FVector CameraOffset = FVector(0);
-
-	if (ViewportSize.X - MouseCursor.X <= EdgePixelsTolerance && MouseCursor.X <= ViewportSize.X)
+	if (bCameraEnabled)
 	{
-		CameraOffset.X += Delta;
-	}
-	else if (MouseCursor.X <= EdgePixelsTolerance && MouseCursor.X >= 0)
-	{
-		CameraOffset.X -= Delta;
+		FIntPoint ViewportSize;
+		GetViewportSize(ViewportSize.X, ViewportSize.Y);
+
+		FVector2f MouseCursor;
+		GetMousePosition(MouseCursor.X, MouseCursor.Y);
+
+		float Delta = DeltaTime * ScrollSpeed;
+		FVector CameraOffset = FVector(0);
+
+		if (ViewportSize.X - MouseCursor.X <= EdgePixelsTolerance && MouseCursor.X <= ViewportSize.X)
+		{
+			CameraOffset.X += Delta;
+		}
+		else if (MouseCursor.X <= EdgePixelsTolerance && MouseCursor.X >= 0)
+		{
+			CameraOffset.X -= Delta;
+		}
+
+		if (ViewportSize.Y - MouseCursor.Y <= EdgePixelsTolerance && MouseCursor.Y <= ViewportSize.Y)
+		{
+			CameraOffset.Y += Delta;
+		}
+		else if (MouseCursor.Y <= EdgePixelsTolerance && MouseCursor.Y >= 0)
+		{
+			CameraOffset.Y -= Delta;
+		}
+
+		if (!CameraOffset.IsZero())
+			CameraActor->AddActorWorldOffset(CameraOffset);
 	}
 
-	if (ViewportSize.Y - MouseCursor.Y <= EdgePixelsTolerance && MouseCursor.Y <= ViewportSize.Y)
-	{
-		CameraOffset.Y += Delta;
-	}
-	else if (MouseCursor.Y <= EdgePixelsTolerance && MouseCursor.Y >= 0)
-	{
-		CameraOffset.Y -= Delta;
-	}
-	
-	if(!CameraOffset.IsZero())
-		CameraActor->AddActorWorldOffset(CameraOffset);
+	FVector CamLocation = CameraActor->GetActorLocation();
+	CamLocation.X = FMath::Clamp(CamLocation.X, CameraBoundsMin.X, CameraBoundsMax.X);
+	CamLocation.Y = FMath::Clamp(CamLocation.Y, CameraBoundsMin.Y, CameraBoundsMax.Y);
+	CamLocation.Z = FMath::Clamp(CamLocation.Z, CameraBoundsMin.Z, CameraBoundsMax.Z);
+
+	if(CamLocation != CameraActor->GetActorLocation())
+		CameraActor->SetActorLocation(CamLocation);
 }
 
 void ASkaterController::SetupInputComponent()
@@ -236,14 +246,9 @@ void ASkaterController::UpdateClientCursorTarget()
 	bool bHitSuccess = GetHitResultUnderCursor(ECollisionChannel::ECC_CursorTrace, false, HitResult);
 
 	FVector2f Result;
-	if (bHitSuccess && HitResult.bBlockingHit)
+	if (bHitSuccess)
 	{
-		Result = FVector2f(HitResult.Location.X, HitResult.Location.Y);
-
-		if (!CursorTarget.Equals(Result, 0.001f))
-		{
-			CursorTarget = Result;
-		}
+		CursorTarget = FVector2f(HitResult.Location.X, HitResult.Location.Y);
 	}
 	else
 	{

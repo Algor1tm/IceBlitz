@@ -256,8 +256,6 @@ float ABaseSkaterCharacter::ComputeShotPower(const FVector& Direction, float Dis
 	float MinPower = ShootBasePower * 0.2f;
 	float Power = MinPower + ShootBasePower * TotalModifiers;
 
-	UE_LOG(LogTemp, Warning, TEXT("Power: %f"), Power);
-
 	return Power;
 }
 

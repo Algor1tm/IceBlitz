@@ -7,7 +7,9 @@
 #include "StickComponent.generated.h"
 
 
-enum class StickOrientation
+class USphereComponent;
+
+enum class EStickOrientation
 {
 	Default,
 	Left,
@@ -26,8 +28,14 @@ protected:
 	UPROPERTY(EditAnywhere)
 	float SwingAngle = 35.f;
 
+	UPROPERTY(EditAnywhere)
+	float LineTraceDistance = 120.f;
+
+	UPROPERTY(EditAnywhere)
+	bool bDebugTrace = false;
+
 private:
-	FRotator DefaultLocalRotation;
+	FRotator DefaultRelativeRotation;
 
 	float TotalSwingTime = 0.f;
 
@@ -35,9 +43,7 @@ private:
 
 	bool bIsSwingAnimating = true;
 
-	StickOrientation Orientation = StickOrientation::Default;
-
-	FRotator GetInitialLocalRotation() const;
+	EStickOrientation Orientation = EStickOrientation::Default;
 
 public:
 	UStickComponent();
@@ -54,8 +60,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StopSwingAnimation();
 
+	void SetOrientation(EStickOrientation StickOrientation);
+
 protected:
 	virtual void BeginPlay() override;
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	void HandleWallCollision();
+
+	void PlaySwingAnimation(float DeltaTime);
+
+	FRotator GetRotation() const;
 };
