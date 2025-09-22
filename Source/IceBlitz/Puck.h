@@ -44,5 +44,5 @@ public:
 	UFUNCTION(BlueprintPure)
 	ABaseSkaterCharacter* GetSkaterOwner() const;
 
-	void Shoot(FVector Direction, float Power);
+	void Shoot(FVector Direction, float Power, bool RemoveCurrentVelocity = true);
 };

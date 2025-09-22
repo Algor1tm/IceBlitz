@@ -30,6 +30,7 @@ enum class ESkaterAbilityInputID : uint8
 
 	Boost       UMETA(DisplayName = "Boost"),
 	Slide       UMETA(DisplayName = "Slide"),
+	OneTimer    UMETA(DisplayName = "OneTimer"),
 };
 
 UCLASS(Abstract)
@@ -106,6 +107,9 @@ protected:
 	float ShootBasePower = 315.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
+	float ShootMinPower = 63.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
 	float ShootChargeFactor = 3.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
@@ -113,9 +117,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
 	float ShootDistanceToCursorFactor = 1.5f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
-	float ShootMaxSkaterSpeed = 1000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
 	float ShootSpeedFactor = 1.75f;
@@ -182,7 +183,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void FaceDirection(const FVector& Direction);
 
-	void PickUpPuck(APuck* aPuck);
+	virtual void PickUpPuck(APuck* aPuck);
 
 protected:
 	virtual void BeginPlay() override;
@@ -192,10 +193,10 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	float ShootPuck();
 
-	float ComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const;
+	float ComputeShotPower(float Charge, const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const;
 
 	UFUNCTION(Client, Reliable)
-	void ClientStopPostShot(FVector ShotDirection);
+	void ClientStop(FVector DirectionToFace);
 
 	UFUNCTION()
 	void OnPuckOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
@@ -221,10 +222,7 @@ protected:
 	FVector2f GetCursorTarget() const;
 
 	UFUNCTION(BlueprintPure)
-	FVector ComputeDirectionTo(FVector2f Location) const;
-
-	UFUNCTION(BlueprintPure)
-	FVector ComputeDirectionFromPuckTo(FVector2f Location) const;
+	FVector ComputePlanarVector(FVector Left, FVector2f Right) const;
 
 	// Attributes
 protected:

@@ -29,6 +29,9 @@ public:
 	UFUNCTION(BlueprintPure)
 	float GetWorldTimeSeconds() const;
 
+	UFUNCTION(BlueprintCallable)
+	void CancelAbilitiesWithTags(const FGameplayTagContainer& Tags);
+
 protected:
 	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) override;
 

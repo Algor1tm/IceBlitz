@@ -21,9 +21,7 @@ void USkaterAbility::OnGiveAbility_Implementation()
 
 void USkaterAbility::OnInputReleased_Implementation()
 {
-	UE_LOG(LogTemp, Warning, TEXT("[%s | LocalController=%d] On Input Released"),
-		*GetNameSafe(this),
-		IsLocallyControlled() ? 1 : 0);
+
 }
 
 void USkaterAbility::InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
@@ -39,4 +37,9 @@ bool USkaterAbility::AvatarHasGameplayTag(FGameplayTag TagToCheck) const
 float USkaterAbility::GetWorldTimeSeconds() const
 {
 	return GetWorld()->GetTimeSeconds();
+}
+
+void USkaterAbility::CancelAbilitiesWithTags(const FGameplayTagContainer& Tags)
+{
+	GetAbilitySystemComponentFromActorInfo()->CancelAbilities(&Tags);
 }

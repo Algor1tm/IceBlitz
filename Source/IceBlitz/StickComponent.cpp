@@ -10,7 +10,7 @@ UStickComponent::UStickComponent()
     PrimaryComponentTick.bCanEverTick = true;
     PrimaryComponentTick.TickInterval = 0.0167f; // 60 Hz
 
-    SetIsReplicated(true);
+    SetIsReplicatedByDefault(true);
     SetSimulatePhysics(false);
 }
 

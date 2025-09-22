@@ -109,7 +109,7 @@ void ABaseSkaterCharacter::Tick(float DeltaTime)
 	if (bIsMoving && IsLocallyControlled())
 	{
 		FVector Velocity = GetCharacterMovement()->Velocity;
-		FVector Direction = ComputeDirectionTo(MoveDestination);
+		FVector Direction = ComputePlanarVector(GetActorLocation(), MoveDestination);
 
 		float Speed = Velocity.Length();
 		float Distance = Direction.Length();
@@ -157,7 +157,7 @@ void ABaseSkaterCharacter::OnMoveInput()
 	FGameplayAbilityTargetDataHandle TargetDataHandle;
 	TargetDataHandle.Add(TargetData);
 
-	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName("AbilityTrigger.Move"));
+	FGameplayTag EventTag = FGameplayTag::RequestGameplayTag(FName("Event.AbilityTrigger.Move"));
 
 	FGameplayEventData Payload;
 	Payload.Instigator = this;
@@ -220,11 +220,12 @@ float ABaseSkaterCharacter::ShootPuck()
 		return 0.f;
 
 	FVector2f Cursor = GetCursorTarget();
-	FVector Direction = ComputeDirectionFromPuckTo(Cursor);
+	FVector Direction = ComputePlanarVector(Puck->GetActorLocation(), Cursor);
 	float DistanceToCursor = Direction.Length();
 	Direction = Direction.GetSafeNormal();
+	float Charge = AttributeSet->GetShotCharge();
 
-	float Power = ComputeShotPower(Direction, DistanceToCursor, GetCharacterMovement()->Velocity);
+	float Power = ComputeShotPower(Charge, Direction, DistanceToCursor, GetCharacterMovement()->Velocity);
 
 	FGameplayTag HasPuckTag = FGameplayTag::RequestGameplayTag(FName("SkaterState.HasPuck"));
 	AbilitySystemComponent->RemoveLooseGameplayTag(HasPuckTag);
@@ -237,35 +238,32 @@ float ABaseSkaterCharacter::ShootPuck()
 
 	Puck = nullptr;
 
-	ClientStopPostShot(Direction);
+	ClientStop(Direction);
 
 	return Power;
 }
 
-float ABaseSkaterCharacter::ComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const
+float ABaseSkaterCharacter::ComputeShotPower(float Charge, const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const
 {
 	float VelocityProjection = FVector::DotProduct(SkaterVelocity.GetSafeNormal(), Direction);
 	float Speed = SkaterVelocity.Length() * VelocityProjection;
 
-	float Charge = AttributeSet->GetShotCharge();
 	float NormDistanceToCursor = FMath::Clamp(DistanceToCursor / ShootMaxDistanceToCursor, 0.f, 1.f);
-	float NormalizedSpeed = FMath::Clamp(Speed / ShootMaxSkaterSpeed, -1.f, 1.f);
+	float NormalizedSpeed = Speed / MaxSkateSpeed;
 
 	float TotalModifiers = ShootChargeFactor * Charge + ShootDistanceToCursorFactor * NormDistanceToCursor + ShootSpeedFactor * NormalizedSpeed;
-
-	float MinPower = ShootBasePower * 0.2f;
-	float Power = MinPower + ShootBasePower * TotalModifiers;
+	float Power = ShootMinPower + ShootBasePower * TotalModifiers;
 
 	return Power;
 }
 
-void ABaseSkaterCharacter::ClientStopPostShot_Implementation(FVector ShotDirection)
+void ABaseSkaterCharacter::ClientStop_Implementation(FVector DirectionToFace)
 {
 	FGameplayAbilitySpec* StopSpec = AbilitySystemComponent->FindAbilitySpecFromInputID((uint32)ESkaterAbilityInputID::Stop);
 	if (StopSpec)
 		AbilitySystemComponent->TryActivateAbility(StopSpec->Handle);
 
-	FaceDirection(ShotDirection);
+	FaceDirection(DirectionToFace);
 }
 
 void ABaseSkaterCharacter::SetMoveDestination(FVector2f Destination)
@@ -455,29 +453,14 @@ FVector2f ABaseSkaterCharacter::GetCursorTarget() const
 	return SkaterController->GetCursorTarget();
 }
 
-FVector ABaseSkaterCharacter::ComputeDirectionTo(FVector2f Location) const
+FVector ABaseSkaterCharacter::ComputePlanarVector(FVector Left, FVector2f Right) const
 {
-	FVector ActorLocation = GetActorLocation();
-	FVector2f ActorPlanarLocation = FVector2f(ActorLocation.X, ActorLocation.Y);
+	FVector2f PlanarLocation = FVector2f(Left.X, Left.Y);
 
-	FVector2f PlanarWorldDirection = Location - ActorPlanarLocation;
-	FVector Direction = FVector(PlanarWorldDirection.X, PlanarWorldDirection.Y, 0);
+	FVector2f PlanarWorldVector = Right - PlanarLocation;
+	FVector Vector = FVector(PlanarWorldVector.X, PlanarWorldVector.Y, 0);
 
-	return Direction;
-}
-
-FVector ABaseSkaterCharacter::ComputeDirectionFromPuckTo(FVector2f Location) const
-{
-	if (!Puck)
-		return FVector(0);
-
-	FVector ActorLocation = Puck->GetActorLocation();
-	FVector2f ActorPlanarLocation = FVector2f(ActorLocation.X, ActorLocation.Y);
-
-	FVector2f PlanarWorldDirection = Location - ActorPlanarLocation;
-	FVector Direction = FVector(PlanarWorldDirection.X, PlanarWorldDirection.Y, 0);
-
-	return Direction;
+	return Vector;
 }
 
 void ABaseSkaterCharacter::OnMaxAccelerationChanged(const FOnAttributeChangeData& Data)
@@ -488,9 +471,4 @@ void ABaseSkaterCharacter::OnMaxAccelerationChanged(const FOnAttributeChangeData
 void ABaseSkaterCharacter::OnMaxSkateSpeedChanged(const FOnAttributeChangeData& Data)
 {
 	GetCharacterMovement()->MaxWalkSpeed = Data.NewValue;
-
-	//UE_LOG(LogTemp, Warning, TEXT("[%s | LocalController=%d | HasAuthority=%d] OnMaxSkateSpeedChanged = %f"),
-	//	*GetNameSafe(this),
-	//	IsLocallyControlled() ? 1 : 0,
-	//	HasAuthority() ? 1 : 0, MaxSkateSpeed);
 }

@@ -14,6 +14,9 @@ APuck::APuck()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+	SetReplicateMovement(true);
+	SetNetUpdateFrequency(100.f);
+	SetMinNetUpdateFrequency(30.f);
 
 	CylinderCollider = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CylinderColliderMesh"));
 	RootComponent = CylinderCollider;
@@ -97,7 +100,6 @@ void APuck::OnRelease()
 		FDetachmentTransformRules DetachmentRules(EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, EDetachmentRule::KeepWorld, false);
 		RootComponent->DetachFromComponent(DetachmentRules);
 
-		CylinderCollider->SetPhysicsLinearVelocity(FVector::ZeroVector);
 		CylinderCollider->SetSimulatePhysics(true);
 
 		SkaterOwner = nullptr;
@@ -114,7 +116,10 @@ ABaseSkaterCharacter* APuck::GetSkaterOwner() const
 	return SkaterOwner;
 }
 
-void APuck::Shoot(FVector Direction, float Power)
+void APuck::Shoot(FVector Direction, float Power, bool RemoveCurrentVelocity)
 {
+	if(RemoveCurrentVelocity)
+		CylinderCollider->SetPhysicsLinearVelocity(FVector::ZeroVector);
+
 	CylinderCollider->AddImpulse(Direction * Power);
 }

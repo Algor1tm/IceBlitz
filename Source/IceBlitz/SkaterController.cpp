@@ -245,7 +245,6 @@ void ASkaterController::UpdateClientCursorTarget()
 	FHitResult HitResult;
 	bool bHitSuccess = GetHitResultUnderCursor(ECollisionChannel::ECC_CursorTrace, false, HitResult);
 
-	FVector2f Result;
 	if (bHitSuccess)
 	{
 		CursorTarget = FVector2f(HitResult.Location.X, HitResult.Location.Y);
