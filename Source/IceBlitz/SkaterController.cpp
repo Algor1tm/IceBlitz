@@ -138,9 +138,9 @@ void ASkaterController::SetupInputComponent()
 
 	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()))
 	{
-		for (UInputMappingContext* CurrentContext : MappingContexts)
+		for (UInputMappingContext* MappingContext: MappingContexts)
 		{
-			Subsystem->AddMappingContext(CurrentContext, 0);
+			Subsystem->AddMappingContext(MappingContext, 0);
 		}
 	}
 

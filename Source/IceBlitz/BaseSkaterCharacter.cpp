@@ -57,6 +57,7 @@ void ABaseSkaterCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	GetCharacterMovement()->GroundFriction = GroundFriction;
+	GetCharacterMovement()->bUseSeparateBrakingFriction = true;
 	GetCharacterMovement()->BrakingFriction = BrakingFriction;
 	GetCharacterMovement()->MaxWalkSpeed = MaxSkateSpeed;
 	GetCharacterMovement()->MaxAcceleration = MaxAcceleration;
@@ -88,16 +89,16 @@ void ABaseSkaterCharacter::BeginPlay()
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
 			USkaterAttributeSet::GetMaxSkateSpeedAttribute()).AddUObject(this, &ABaseSkaterCharacter::OnMaxSkateSpeedChanged);
 
-		FGameplayAbilitySpec MoveAbilitySpec(MoveAbility, 1, (uint32)ESkaterAbilityInputID::Move, this);
+		FGameplayAbilitySpec MoveAbilitySpec(MoveAbility, 1, (uint32)ESkaterAbilityID::Move, this);
 		AbilitySystemComponent->GiveAbility(MoveAbilitySpec);
 
-		FGameplayAbilitySpec StopAbilitySpec(StopAbility, 1, (uint32)ESkaterAbilityInputID::Stop, this);
+		FGameplayAbilitySpec StopAbilitySpec(StopAbility, 1, (uint32)ESkaterAbilityID::Stop, this);
 		AbilitySystemComponent->GiveAbility(StopAbilitySpec);
 
-		FGameplayAbilitySpec ShootAbilitySpec(ShootAbility, 1, (uint32)ESkaterAbilityInputID::Shoot, this);
+		FGameplayAbilitySpec ShootAbilitySpec(ShootAbility, 1, (uint32)ESkaterAbilityID::Shoot, this);
 		AbilitySystemComponent->GiveAbility(ShootAbilitySpec);
 
-		FGameplayAbilitySpec StealAbilitySpec(StealAbility, 1, (uint32)ESkaterAbilityInputID::Steal, this);
+		FGameplayAbilitySpec StealAbilitySpec(StealAbility, 1, (uint32)ESkaterAbilityID::Steal, this);
 		AbilitySystemComponent->GiveAbility(StealAbilitySpec);
 	}
 }
@@ -125,6 +126,9 @@ void ABaseSkaterCharacter::Tick(float DeltaTime)
 			{
 				bIsMoving = false;
 				GetCharacterMovement()->StopMovementImmediately();
+			}
+			else
+			{
 			}
 		}
 		else
@@ -169,18 +173,18 @@ void ABaseSkaterCharacter::OnMoveInput()
 
 void ABaseSkaterCharacter::OnStopInput()
 {
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Stop);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::Stop);
 }
 
 void ABaseSkaterCharacter::OnShootInputPressed()
 {
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Shoot);
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Steal);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::Shoot);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::Steal);
 }
 
 void ABaseSkaterCharacter::OnShootInputReleased()
 {
-	FGameplayAbilitySpec* ShootSpec = AbilitySystemComponent->FindAbilitySpecFromInputID((uint32)ESkaterAbilityInputID::Shoot);
+	FGameplayAbilitySpec* ShootSpec = AbilitySystemComponent->FindAbilitySpecFromInputID((uint32)ESkaterAbilityID::Shoot);
 
 	if (ShootSpec && ShootSpec->Ability)
 	{
@@ -193,7 +197,7 @@ void ABaseSkaterCharacter::OnShootInputReleased()
 
 void ABaseSkaterCharacter::ServerOnShootInputReleased_Implementation()
 {
-	FGameplayAbilitySpec* ShootSpec = AbilitySystemComponent->FindAbilitySpecFromInputID((uint32)ESkaterAbilityInputID::Shoot);
+	FGameplayAbilitySpec* ShootSpec = AbilitySystemComponent->FindAbilitySpecFromInputID((uint32)ESkaterAbilityID::Shoot);
 	if (ShootSpec && ShootSpec->IsActive())
 	{
 		AbilitySystemComponent->AbilitySpecInputReleased(*ShootSpec);
@@ -259,7 +263,7 @@ float ABaseSkaterCharacter::ComputeShotPower(float Charge, const FVector& Direct
 
 void ABaseSkaterCharacter::ClientStop_Implementation(FVector DirectionToFace)
 {
-	FGameplayAbilitySpec* StopSpec = AbilitySystemComponent->FindAbilitySpecFromInputID((uint32)ESkaterAbilityInputID::Stop);
+	FGameplayAbilitySpec* StopSpec = AbilitySystemComponent->FindAbilitySpecFromInputID((uint32)ESkaterAbilityID::Stop);
 	if (StopSpec)
 		AbilitySystemComponent->TryActivateAbility(StopSpec->Handle);
 
@@ -320,8 +324,6 @@ void ABaseSkaterCharacter::OnPuckOverlap(UPrimitiveComponent* OverlappedComponen
 
 void ABaseSkaterCharacter::PickUpPuck(APuck* aPuck)
 {
-	// Future: Trigger one-timer shot here
-
 	OnPuckReceive(aPuck);
 }
 

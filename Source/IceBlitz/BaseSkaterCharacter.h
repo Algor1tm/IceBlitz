@@ -20,7 +20,7 @@ class USkaterAbility;
 class USkaterAttributeSet;
 
 UENUM(BlueprintType)
-enum class ESkaterAbilityInputID : uint8
+enum class ESkaterAbilityID : uint8
 {
 	None        UMETA(DisplayName = "None"),
 	Move        UMETA(DisplayName = "Move"),
@@ -31,6 +31,7 @@ enum class ESkaterAbilityInputID : uint8
 	Boost       UMETA(DisplayName = "Boost"),
 	Slide       UMETA(DisplayName = "Slide"),
 	OneTimer    UMETA(DisplayName = "OneTimer"),
+	Shield      UMETA(DisplayName = "Shield"),
 };
 
 UCLASS(Abstract)
@@ -60,6 +61,7 @@ protected:
 
 	// Input
 protected:
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* MoveInputAction;
 
@@ -104,22 +106,22 @@ protected:
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
-	float ShootBasePower = 315.f;
+	float ShootBasePower = 350.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
-	float ShootMinPower = 63.f;
+	float ShootMinPower = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
 	float ShootChargeFactor = 3.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
-	float ShootMaxDistanceToCursor = 2000.f;
+	float ShootMaxDistanceToCursor = 1750.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
-	float ShootDistanceToCursorFactor = 1.5f;
+	float ShootDistanceToCursorFactor = 1.7f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
-	float ShootSpeedFactor = 1.75f;
+	float ShootSpeedFactor = 0.35f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shoot")
 	float PuckPickUpCooldown = 0.275f;
@@ -127,19 +129,19 @@ protected:
 	// Movement
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float GroundFriction = 0.8f;
+	float GroundFriction = 0.82f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float BrakingFriction = 0.7f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float SkateSpeed = 20.f;
+	float SkateSpeed = 5.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float MaxSkateSpeed = 410.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float MaxAcceleration = 300.f;
+	float MaxAcceleration = 200.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float MinSpeed = 100.f;
@@ -148,7 +150,7 @@ protected:
 	float MinDistance = 30.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float RotationSpeed = 1100.f;
+	float RotationSpeed = 1175.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bOrientRotationToMovement = true;
@@ -195,7 +197,7 @@ protected:
 
 	float ComputeShotPower(float Charge, const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity) const;
 
-	UFUNCTION(Client, Reliable)
+	UFUNCTION(BlueprintCallable, Client, Reliable)
 	void ClientStop(FVector DirectionToFace);
 
 	UFUNCTION()

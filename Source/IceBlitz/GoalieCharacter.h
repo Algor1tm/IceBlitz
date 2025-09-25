@@ -17,11 +17,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
 	UInputAction* BoostInputAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input")
+	UInputAction* ShieldInputAction;
+
 	void OnBoostInput();
+
+	void OnShieldInput();
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
 	TSubclassOf<USkaterAbility> BoostAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> ShieldAbility;
 
 public:
 	AGoalieCharacter();

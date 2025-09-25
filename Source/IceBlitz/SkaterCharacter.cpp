@@ -23,13 +23,13 @@ void ASkaterCharacter::BeginPlay()
 
 	if (HasAuthority())
 	{
-		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 1, (uint32)ESkaterAbilityInputID::Boost, this);
+		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 1, (uint32)ESkaterAbilityID::Boost, this);
 		AbilitySystemComponent->GiveAbility(BoostAbilitySpec);
 
-		FGameplayAbilitySpec SlideAbilitySpec(SlideAbility, 1, (uint32)ESkaterAbilityInputID::Slide, this);
+		FGameplayAbilitySpec SlideAbilitySpec(SlideAbility, 1, (uint32)ESkaterAbilityID::Slide, this);
 		AbilitySystemComponent->GiveAbility(SlideAbilitySpec);
 
-		FGameplayAbilitySpec OneTimerAbilitySpec(OneTimerAbility, 1, (uint32)ESkaterAbilityInputID::OneTimer, this);
+		FGameplayAbilitySpec OneTimerAbilitySpec(OneTimerAbility, 1, (uint32)ESkaterAbilityID::OneTimer, this);
 		AbilitySystemComponent->GiveAbility(OneTimerAbilitySpec);
 	}
 }
@@ -53,17 +53,17 @@ void ASkaterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 
 void ASkaterCharacter::OnBoostInput()
 {
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Boost);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::Boost);
 }
 
 void ASkaterCharacter::OnSlideInput()
 {
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Slide);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::Slide);
 }
 
 void ASkaterCharacter::OnOneTimerInput()
 {
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::OneTimer);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::OneTimer);
 }
 
 void ASkaterCharacter::PickUpPuck(APuck* aPuck)

@@ -19,8 +19,11 @@ void AGoalieCharacter::BeginPlay()
 
 	if (HasAuthority())
 	{
-		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 2, (uint32)ESkaterAbilityInputID::Boost, this);
+		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 2, (uint32)ESkaterAbilityID::Boost, this);
 		AbilitySystemComponent->GiveAbility(BoostAbilitySpec);
+
+		FGameplayAbilitySpec ShieldAbilitySpec(ShieldAbility, 1, (uint32)ESkaterAbilityID::Shield, this);
+		AbilitySystemComponent->GiveAbility(ShieldAbilitySpec);
 	}
 }
 
@@ -36,10 +39,16 @@ void AGoalieCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(BoostInputAction, ETriggerEvent::Started, this, &AGoalieCharacter::OnBoostInput);
+		EnhancedInputComponent->BindAction(ShieldInputAction, ETriggerEvent::Started, this, &AGoalieCharacter::OnShieldInput);
 	}
 }
 
 void AGoalieCharacter::OnBoostInput()
 {
-	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityInputID::Boost);
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::Boost);
+}
+
+void AGoalieCharacter::OnShieldInput()
+{
+	AbilitySystemComponent->AbilityLocalInputPressed((uint32)ESkaterAbilityID::Shield);
 }
