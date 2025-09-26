@@ -26,6 +26,9 @@ void ASkaterCharacter::BeginPlay()
 		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 1, (uint32)ESkaterAbilityID::Boost, this);
 		AbilitySystemComponent->GiveAbility(BoostAbilitySpec);
 
+		FGameplayAbilitySpec BoostRechargerAbilitySpec(BoostRechargerAbility, 1, (uint32)ESkaterAbilityID::None, this);
+		AbilitySystemComponent->GiveAbility(BoostRechargerAbilitySpec);
+
 		FGameplayAbilitySpec SlideAbilitySpec(SlideAbility, 1, (uint32)ESkaterAbilityID::Slide, this);
 		AbilitySystemComponent->GiveAbility(SlideAbilitySpec);
 
@@ -123,9 +126,4 @@ float ASkaterCharacter::OneTimerComputeShotPower(const FVector& Direction, float
 	Power = FMath::Clamp(Power, ShootMinPower, Power);
 
 	return Power;
-}
-
-void ASkaterCharacter::ClientFaceDirection_Implementation(FVector ShotDirection)
-{
-	FaceDirection(ShotDirection);
 }

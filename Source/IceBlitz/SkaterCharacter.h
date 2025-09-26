@@ -32,10 +32,13 @@ protected:
 
 protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
-	TSubclassOf<USkaterAbility> SlideAbility;
+	TSubclassOf<USkaterAbility> BoostAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
-	TSubclassOf<USkaterAbility> BoostAbility;
+	TSubclassOf<USkaterAbility> BoostRechargerAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> SlideAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
 	TSubclassOf<USkaterAbility> OneTimerAbility;
@@ -54,9 +57,6 @@ protected:
 	void OneTimerShootPuck(APuck* aPuck);
 
 	float OneTimerComputeShotPower(const FVector& Direction, float DistanceToCursor, const FVector& SkaterVelocity, const FVector& PuckVelocity) const;
-
-	UFUNCTION(Client, Reliable)
-	void ClientFaceDirection(FVector ShotDirection);
 
 public:	
 	virtual void Tick(float DeltaTime) override;

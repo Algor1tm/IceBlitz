@@ -135,7 +135,7 @@ protected:
 	float BrakingFriction = 0.7f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float SkateSpeed = 5.f;
+	float SkateSpeed = 10.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float MaxSkateSpeed = 410.f;
@@ -154,6 +154,24 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bOrientRotationToMovement = true;
+
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
+	float BoostMaxSkateSpeed = 810.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
+	float BoostDuration = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
+	int BoostCharges = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boost")
+	float BoostChargeCooldown = 3.f;
+
+public:
+	float GetBoostCharges() const { return BoostCharges; };
+
+	float GetBoostChargeCooldown() const { return BoostChargeCooldown; };
 
 protected:
 	UPROPERTY(BlueprintReadOnly, Replicated)

@@ -35,7 +35,11 @@ public:
     FGameplayAttributeData ShotCharge;
     ATTRIBUTE_ACCESSORS(USkaterAttributeSet, ShotCharge);
 
-    virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) override;
+    UPROPERTY(BlueprintReadOnly, ReplicatedUsing = OnRep_BoostCurrentCharges, Category = "Boost")
+    FGameplayAttributeData BoostCurrentCharges;
+    ATTRIBUTE_ACCESSORS(USkaterAttributeSet, BoostCurrentCharges);
+
+
     virtual void PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data) override;
 
     virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
@@ -45,4 +49,7 @@ public:
 
     UFUNCTION()
     void OnRep_ShotCharge(const FGameplayAttributeData& OldValue);
+
+    UFUNCTION()
+    void OnRep_BoostCurrentCharges(const FGameplayAttributeData& OldValue);
 };

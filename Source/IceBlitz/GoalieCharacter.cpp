@@ -19,8 +19,11 @@ void AGoalieCharacter::BeginPlay()
 
 	if (HasAuthority())
 	{
-		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 2, (uint32)ESkaterAbilityID::Boost, this);
+		FGameplayAbilitySpec BoostAbilitySpec(BoostAbility, 1, (uint32)ESkaterAbilityID::Boost, this);
 		AbilitySystemComponent->GiveAbility(BoostAbilitySpec);
+
+		FGameplayAbilitySpec BoostRechargerAbilitySpec(BoostRechargerAbility, 1, (uint32)ESkaterAbilityID::None, this);
+		AbilitySystemComponent->GiveAbility(BoostRechargerAbilitySpec);
 
 		FGameplayAbilitySpec ShieldAbilitySpec(ShieldAbility, 1, (uint32)ESkaterAbilityID::Shield, this);
 		AbilitySystemComponent->GiveAbility(ShieldAbilitySpec);

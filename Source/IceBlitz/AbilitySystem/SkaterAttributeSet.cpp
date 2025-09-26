@@ -2,19 +2,11 @@
 
 
 #include "SkaterAttributeSet.h"
+#include "../BaseSkaterCharacter.h"
+
 #include "GameplayEffectExtension.h"
 #include "Net/UnrealNetwork.h"
 
-
-void USkaterAttributeSet::PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue)
-{
-    Super::PreAttributeChange(Attribute, NewValue);
-
-    if (Attribute == GetShotChargeAttribute())
-    {
-        NewValue = FMath::Clamp(NewValue, 0.0f, 1.f);
-    }
-}
 
 void USkaterAttributeSet::PostGameplayEffectExecute(const FGameplayEffectModCallbackData& Data)
 {
@@ -33,6 +25,7 @@ void USkaterAttributeSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 
     DOREPLIFETIME_CONDITION_NOTIFY(USkaterAttributeSet, SkateSpeed, COND_None, REPNOTIFY_Always);
     DOREPLIFETIME_CONDITION_NOTIFY(USkaterAttributeSet, ShotCharge, COND_None, REPNOTIFY_Always);
+    DOREPLIFETIME_CONDITION_NOTIFY(USkaterAttributeSet, BoostCurrentCharges, COND_None, REPNOTIFY_Always);
 }
 
 void USkaterAttributeSet::OnRep_SkateSpeed(const FGameplayAttributeData& OldValue)
@@ -43,4 +36,9 @@ void USkaterAttributeSet::OnRep_SkateSpeed(const FGameplayAttributeData& OldValu
 void USkaterAttributeSet::OnRep_ShotCharge(const FGameplayAttributeData& OldValue)
 {
     GAMEPLAYATTRIBUTE_REPNOTIFY(USkaterAttributeSet, ShotCharge, OldValue);
+}
+
+void USkaterAttributeSet::OnRep_BoostCurrentCharges(const FGameplayAttributeData& OldValue)
+{
+    GAMEPLAYATTRIBUTE_REPNOTIFY(USkaterAttributeSet, BoostCurrentCharges, OldValue);
 }

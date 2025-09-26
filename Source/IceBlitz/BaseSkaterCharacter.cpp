@@ -82,6 +82,7 @@ void ABaseSkaterCharacter::BeginPlay()
 		AttributeSet->InitMaxSkateSpeed(MaxSkateSpeed);
 		AttributeSet->InitSkateSpeed(SkateSpeed);
 		AttributeSet->InitShotCharge(0.f);
+		AttributeSet->InitBoostCurrentCharges(BoostCharges);
 
 		AbilitySystemComponent->GetGameplayAttributeValueChangeDelegate(
 			USkaterAttributeSet::GetMaxAccelerationAttribute()).AddUObject(this, &ABaseSkaterCharacter::OnMaxAccelerationChanged);
@@ -126,9 +127,6 @@ void ABaseSkaterCharacter::Tick(float DeltaTime)
 			{
 				bIsMoving = false;
 				GetCharacterMovement()->StopMovementImmediately();
-			}
-			else
-			{
 			}
 		}
 		else

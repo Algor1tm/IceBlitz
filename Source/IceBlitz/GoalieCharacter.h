@@ -29,6 +29,9 @@ protected:
 	TSubclassOf<USkaterAbility> BoostAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
+	TSubclassOf<USkaterAbility> BoostRechargerAbility;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Abilities")
 	TSubclassOf<USkaterAbility> ShieldAbility;
 
 public:
